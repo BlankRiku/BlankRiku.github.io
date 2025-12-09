@@ -1,0 +1,1 @@
+# BlankRiku.github.io
