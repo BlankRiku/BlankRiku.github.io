@@ -3,7 +3,7 @@ export interface Project {
   title: string;
   shortDescription: string;
   fullDescription: string;
-  category: "ai" | "devops" | "web" | "all";
+  category: "ai" | "devops" | "web" | "mobile" | "all";
   tags: string[];
   achievements: string[];
   metrics?: { label: string; value: string }[];
@@ -33,13 +33,6 @@ export interface TimelineItem {
   isEducation: boolean;
   achievements?: string[];
   tags?: string[];
-}
-
-export interface ChatMessage {
-  id: string;
-  role: "user" | "ai";
-  content: string;
-  timestamp: string;
 }
 
 export interface TerminalEntry {

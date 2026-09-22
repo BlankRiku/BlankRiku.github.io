@@ -11,9 +11,7 @@ import {
   Linkedin, 
   ExternalLink, 
   Command, 
-  Send, 
   CheckCircle2, 
-  Sparkles, 
   ChevronRight, 
   X, 
   FileText, 
@@ -32,14 +30,15 @@ import {
   Activity,
   Check,
   Plus,
-  Minus
+  Minus,
+  Radio
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PROJECTS_DATA, SKILLS_DATA, TIMELINE_DATA } from "./data";
-import { Project, SkillGroup, TimelineItem, ChatMessage, TerminalEntry } from "./types";
+import { Project, SkillGroup, TimelineItem, TerminalEntry } from "./types";
 
 export default function App() {
-  const [activeTab, setActiveTab ] = useState<"ai" | "devops" | "web" | "all">("all");
+  const [activeTab, setActiveTab ] = useState<"ai" | "devops" | "web" | "mobile" | "all">("all");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   
   // Interactive Terminal State
@@ -47,7 +46,7 @@ export default function App() {
   const [terminalHistory, setTerminalHistory] = useState<TerminalEntry[]>([
     {
       input: "welcome",
-      output: "Benvenuto nel terminale di Alexandro Tornese.\nDigita 'help' per visualizzare i comandi disponibili per esplorare il mio CV.\nScrivi 'ai' per avviare l'assistente virtuale integrato.",
+      output: "Benvenuto nel terminale di Alexandro Tornese.\nDigita 'help' per visualizzare i comandi disponibili per esplorare il mio CV.",
       timestamp: new Date().toLocaleTimeString(),
       dir: "~"
     }
@@ -56,58 +55,58 @@ export default function App() {
   const [terminalTheme, setTerminalTheme] = useState<"dark" | "matrix" | "nord">("dark");
 
   // Pipeline / Automation Simulator Settings
-  const [selectedRecipe, setSelectedRecipe] = useState<"ai-triage" | "ceposto-cache" | "todo-git-sync">("ai-triage");
+  const [selectedRecipe, setSelectedRecipe] = useState<"ai-triage" | "k8s-deploy" | "todo-git-sync">("ai-triage");
   const [pipelineStep, setPipelineStep] = useState<number>(-1);
   const [pipelineRunning, setPipelineRunning] = useState<boolean>(false);
   const [pipelineLogs, setPipelineLogs] = useState<string[]>([]);
 
   const RECIPES_DATA = {
     "ai-triage": {
-      title: "AI Triage & Helpdesk Sync (RAG + AI)",
-      description: "Classificazione avanzata ed instradamento dei ticket d'assistenza con RAG ed AI.",
+      title: "Geppo AI: Email → Ticket",
+      description: "Flusso reale del progetto Geppo: una email entra, viene classificata via RAG ibrido e multi-LLM e genera un'azione.",
       nodes: [
-        { id: "trigger", label: "Webhook Mail", desc: "Arrivo nuova mail" },
-        { id: "rag", label: "Vettoriale RAG", desc: "Lookup Embedding" },
-        { id: "gemini", label: "Gemini 3.5 Flash", desc: "Classifica & Bozza reply" },
-        { id: "todo", label: "SaaS ToDo Ticket", desc: "Generazione Task" }
+        { id: "imap", label: "IMAP IDLE", desc: "Nuova email" },
+        { id: "import", label: "import-service", desc: "Parsing + RAG lookup" },
+        { id: "llm", label: "main-service", desc: "Classifica + bozza" },
+        { id: "audit", label: "audit-service", desc: "Log evento + azione" }
       ],
       logs: [
-        "In attesa del trigger... Rilevato webhook per evento email di supporto entrante.",
-        "Lookup eseguito su database vettoriale per allineamento risposte FAQ e doc.",
-        "Analisi semantica e generazione bozza con Gemini 3.5 Flash completata (Confidenza al 98%).",
-        "Creato ticket correlato nell'applicativo ToDo e allineato canale helpdesk."
+        "Bridge MQTT: ricevuto evento nuova email sulla casella aziendale (IDLE).",
+        "import-service: estratto testo e allegati, ricerca ibrida su ChromaDB + BM25 dei documenti indicizzati.",
+        "main-service: classificazione e bozza di risposta via provider LLM con function calling.",
+        "audit-service: evento registrato; ticket creato e risposta accodata per l'invio."
       ]
     },
-    "ceposto-cache": {
-      title: "CePosto Smart Buffer Engine (www.ceposto.it)",
-      description: "Sincronia real-time ed ottimizzazione delle code e delle prenotazioni.",
+    "k8s-deploy": {
+      title: "Deploy Kubernetes (k3s)",
+      description: "Pipeline CI/CD concreta: build Maven, immagine Docker su registry, rollout su cluster k3s con smoke test.",
       nodes: [
-        { id: "trigger", label: "Cron Trigger", desc: "Schedulazione slot" },
-        { id: "pg", label: "Postgres Optimizer", desc: "Ricerca slot liberi" },
-        { id: "redis", label: "Redis Caching", desc: "Write-back memory pool" },
-        { id: "app", label: "App Webhook", desc: "Notifiche native" }
+        { id: "push", label: "GitLab CI", desc: "Push su develop" },
+        { id: "maven", label: "Maven build", desc: "Test + JAR (Java 21)" },
+        { id: "image", label: "Docker image", desc: "Build & push registry" },
+        { id: "rollout", label: "kubectl rollout", desc: "Deploy su k3s" }
       ],
       logs: [
-        "Trigger orario scattato. Avvio sincronizzazione agende multisito.",
-        "Eseguite query ad alte prestazioni su Postgres: calcolati i binari degli slot operatore.",
-        "Salvati ed ottimizzati gli slot aggregati in Redis (+35% velocità caricamento sito).",
-        "Dispacciata notifica di allineamento e push broadcast a 100k+ dispositivi mobile."
+        "GitLab CI: pipeline avviata sul branch develop (commit trigger).",
+        "Maven: compilazione e test superati, artifact JAR generato.",
+        "Docker: immagine costruita e pubblicata sul registry del team.",
+        "kubectl rollout status: deployment aggiornato su k3s, pod healthy e smoke test OK."
       ]
     },
     "todo-git-sync": {
-      title: "ToDo Enterprise Git-to-Jira Workflow",
-      description: "Auto-branching git automatico orchestrato dalle transizioni ticket di ToDo.",
+      title: "ToDo → GitLab Auto-Branch",
+      description: "Flusso reale di ToDo: dal bug segnalato alla creazione automatica del branch GitLab, con notifica al team.",
       nodes: [
-        { id: "trigger", label: "Apertura Bug", desc: "Nuova segnalazione" },
-        { id: "spring", label: "Spring Boot Core", desc: "Transition Sprint engine" },
-        { id: "git", label: "GitLab Hooks", desc: "Creazione branch Git" },
-        { id: "notify", label: "DevOps Notice", desc: "Log sul canale d'assistenza" }
+        { id: "bug", label: "Bug su ToDo", desc: "Nuova segnalazione" },
+        { id: "spring", label: "Spring Boot", desc: "Transition stato/sprint" },
+        { id: "gitlab", label: "GitLab API", desc: "Crea branch" },
+        { id: "notify", label: "MQTT Notify", desc: "Notifica team/helpdesk" }
       ],
       logs: [
-        "Bug prioritario 'Err#404 login' convalidato dal lead sul pannello ToDo.",
-        "Modulo Spring Boot avvia la transition di stato in 'In Sviluppo' e alloca lo sprint.",
-        "Invocate API GitLab remote: branch 'fix/todo-err404-login' creato da master con successo.",
-        "Log del branch archiviato, avviato container di sandbox e inoltrata notifica Slack Team."
+        "Nuovo bug segnalato e validato: stato impostato su 'In Sviluppo'.",
+        "Spring Boot: allocazione dello sprint ed esecuzione della transition di stato.",
+        "GitLab API: creato il branch 'fix/<id-descrizione>' dal branch base.",
+        "Notifica inviata al canale del team; ticket collegato al branch e pronto al deploy."
       ]
     }
   };
@@ -147,19 +146,19 @@ export default function App() {
 
   // DevOps Cluster Sandbox Simulator State
   const [clusterServices, setClusterServices] = useState([
-    { id: "web", name: "docker:web-srv", label: "Web Portal (Nginx Proxy)", replicas: 2, max: 5, type: "container", color: "cyan" },
-    { id: "core", name: "jvm:spring-core", label: "Spring Core (Java Engine)", replicas: 1, max: 4, type: "jvm", color: "indigo" },
-    { id: "db", name: "pg:postgres-db", label: "Postgres Database", replicas: 1, max: 2, type: "db", color: "emerald" }
+    { id: "web", name: "deploy/nginx-proxy", label: "Reverse Proxy (Nginx)", replicas: 2, max: 4, type: "container", color: "cyan" },
+    { id: "core", name: "deploy/ceposto-app", label: "CePosto App (PHP 8.3 / Tomcat)", replicas: 2, max: 6, type: "container", color: "indigo" },
+    { id: "db", name: "svc/mariadb", label: "MariaDB (host)", replicas: 1, max: 2, type: "db", color: "emerald" }
   ]);
   const [trafficScale, setTrafficScale] = useState<"idle" | "normal" | "surge">("normal");
   
   // Custom, ultra-responsive lightweight data stream history for SVG Chart (8 coordinates)
   const [customChartHistory, setCustomChartHistory] = useState<number[]>([15, 25, 42, 35, 50, 45, 62, 58]);
   const [clusterLogsList, setClusterLogsList] = useState<string[]>([
-    "CLUSTER_INIT: Kubernetes orchestrator green light.",
-    "SERVICE_DISCOVERY: web-srv attached on WAN port :3000.",
-    "JVM_BOOT: spring-core instance active (256MB heap pool initialized).",
-    "DB_CONNECT: Postgres master node connection pool established successfully."
+    "CLUSTER_INIT: cluster k3s online, namespace di produzione pronto.",
+    "INGRESS: nginx-proxy esposto pubblicamente (rete reverse_proxy_net).",
+    "APP_BOOT: container ceposto-app attivo (Apache + PHP 8.3 / Tomcat).",
+    "DB_CONNECT: pool di connessioni verso MariaDB stabilito."
   ]);
   const devopsLogsRef = useRef<HTMLDivElement>(null);
 
@@ -180,11 +179,34 @@ export default function App() {
 
   // Infinite, organic live stream ticker for DevOps Sandbox Console
   useEffect(() => {
+    // Target repliche per profilo di traffico (Horizontal Pod Autoscaler)
+    const SCALE_TARGETS: Record<"idle" | "normal" | "surge", Record<string, number>> = {
+      idle: { web: 1, core: 1, db: 1 },
+      normal: { web: 2, core: 2, db: 1 },
+      surge: { web: 4, core: 6, db: 2 }
+    };
+
     const handleDevOpsTick = () => {
-      // Calculate current performance variables based on configuration
-      const webCount = clusterServices.find(s => s.id === "web")?.replicas || 1;
-      const coreCount = clusterServices.find(s => s.id === "core")?.replicas || 1;
-      const dbCount = clusterServices.find(s => s.id === "db")?.replicas || 1;
+      const timestamps = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+      // Horizontal Pod Autoscaler: converge le repliche verso il target del profilo
+      const targets = SCALE_TARGETS[trafficScale];
+      const scaled = clusterServices.map(srv => {
+        const target = Math.min(targets[srv.id] ?? srv.replicas, srv.max);
+        if (srv.replicas === target) return srv;
+        const nextReplicas = srv.replicas < target ? srv.replicas + 1 : srv.replicas - 1;
+        return { ...srv, replicas: nextReplicas };
+      });
+      const autoscaleLogs = scaled
+        .filter((s, i) => s.replicas !== clusterServices[i].replicas)
+        .map(s => `[${timestamps}] [INF] HPA: '${s.name}' → ${s.replicas} repliche (profilo '${trafficScale}').`);
+
+      if (autoscaleLogs.length > 0) setClusterServices(scaled);
+
+      // Performance del cluster calcolata sullo stato post-autoscaling
+      const webCount = scaled.find(s => s.id === "web")?.replicas || 1;
+      const coreCount = scaled.find(s => s.id === "core")?.replicas || 1;
+      const dbCount = scaled.find(s => s.id === "db")?.replicas || 1;
 
       let baseVal = 40;
       if (trafficScale === "idle") baseVal = 12;
@@ -201,7 +223,6 @@ export default function App() {
       });
 
       // Spawn random organic live system log entry
-      const timestamps = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
       const prefixes = ["INF", "DEB", "INF", "WRN", "INF"];
       const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
       
@@ -209,26 +230,26 @@ export default function App() {
       const randomMsg = Math.random();
       if (trafficScale === "surge") {
         if (randomMsg < 0.3) {
-          logBody = `TRAFFIC_SWEEP: Dispatching batch of ${Math.floor(180 + Math.random() * 200)} rest-payloads to spring-core cluster.`;
+          logBody = `TRAFFIC: burst di ${Math.floor(180 + Math.random() * 200)} richieste in ingresso sul reverse proxy.`;
         } else if (randomMsg < 0.6) {
-          logBody = `REPL_HEALTH: Core health check response: 200 OK (latency: ${Math.floor(40 + Math.random() * 110)}ms).`;
+          logBody = `PROXY_HEALTH: upstream ceposto-app 200 OK (latency: ${Math.floor(40 + Math.random() * 110)}ms).`;
         } else {
           logBody = actualLoad > 75 
-            ? `SYS_PRESSURE: HIGH WORKLOAD detected (${actualLoad}% cluster load). Scaling spring-core core recommended!`
-            : `SYS_BALANCED: Server load stabilized under surge due to active scaling pools.`;
+            ? `HPA: carico cluster ${actualLoad}%, scaling orizzontale dei pod in corso.`
+            : `SYS_BALANCED: carico stabilizzato dallo scaling automatico delle repliche.`;
         }
       } else if (trafficScale === "idle") {
-        if (randomMsg < 0.5) logBody = `IDLE: System idling. DB ping loop: postgres-db responding in 1.4ms.`;
-        else logBody = `CRON_SCHEDULED: n8n checking scheduled queue. No pending tasks found containing 'ceposto-sync'.`;
+        if (randomMsg < 0.5) logBody = `IDLE: nessuna richiesta in ingresso. Ping MariaDB 1.4ms.`;
+        else logBody = `CRON: n8n in attesa, nessun job schedulato in coda.`;
       } else {
-        if (randomMsg < 0.25) logBody = `HTTP_GATEWAY: GET /api/v1/workforce - 200 OK (7.2ms via cache-hit).`;
-        else if (randomMsg < 0.5) logBody = `REDIS_CACHE: CePosto buffer hit - bypassed SQL lookup for slot calendar.`;
-        else if (randomMsg < 0.75) logBody = `JOB_DAEMON: n8n pipeline completed workflow: 'To-Do GitLab AutoBrancher'.`;
-        else logBody = `POSTGRES_POOL: Active connections model: ${Math.floor(1 + Math.random() * 3)} active / 10 idle.`;
+        if (randomMsg < 0.25) logBody = `INGRESS: GET /api/v1/appuntamenti - 200 OK (Nginx upstream).`;
+        else if (randomMsg < 0.5) logBody = `MARIADB: pool connessioni ${Math.floor(1 + Math.random() * 3)} attive / 10 idle.`;
+        else if (randomMsg < 0.75) logBody = `N8N: workflow 'ToDo GitLab AutoBrancher' completato.`;
+        else logBody = `DOCKER: healthcheck ceposto-app: healthy.`;
       }
 
       setClusterLogsList(prev => {
-        const next = [...prev, `[${timestamps}] [${prefix}] ${logBody}`];
+        const next = [...prev, ...autoscaleLogs, `[${timestamps}] [${prefix}] ${logBody}`];
         if (next.length > 20) return next.slice(next.length - 20);
         return next;
       });
@@ -263,44 +284,45 @@ export default function App() {
                  "  contact     - Informazioni di contatto dirette\n" +
                  "  theme       - Cambia aspetto del terminale (theme matrix / theme nord / theme dark)\n" +
                  "  mcp         - Esegui una simulazione di query via Model Context Protocol (MCP)\n" +
-                 "  clear       - Pulisce lo schermo\n" +
-                 "  ai          - Spiega come funziona l'assistente virtuale integrato";
+                 "  clear       - Pulisce lo schermo";
         break;
       case "about":
-        output = "Alexandro Tornese - Sviluppatore Full-Stack con circa 3 anni di esperienza nell'IT.\n" +
-                 "Attualmente lavora presso Icsone su applicativi aziendali complessi ed automazioni di sistema,\n" +
+        output = "Alexandro Tornese - Software Engineer con circa 4 anni di esperienza nell'IT.\n" +
+                 "Attualmente lavora presso Icsone su applicativi aziendali complessi, architetture AI e infrastrutture containerizzate,\n" +
                  "e contemporaneamente frequenta il secondo anno di Ingegneria Informatica all'Università del Salento.\n" +
-                 "I suoi principali ambiti d'interesse sono il DevOps, lo sviluppo Backend robusto e le architetture AI generative (RAG).";
+                 "Spazia dall'AI generativa (RAG multi-provider) al backend, dal DevOps ai sistemi realtime/IoT (MQTT) fino ad app mobile e desktop.";
         break;
       case "skills":
         output = "TECH STACK PRINCIPALE:\n" +
                  "--------------------------------------------------\n" +
-                 "  Backend:  Spring Boot (Java), PHP (Yii2)\n" +
-                 "  Database: MariaDB, PostgreSQL, MySQL\n" +
-                 "  Frontend: Angular, Ionic, TypeScript, Tailwind CSS\n" +
-                 "  DevOps:   Docker, Portainer, GitLab CI/CD, n8n Automation\n" +
-                 "  AI:       RAG Architectures, MCP (Model Context Protocol), Local LLMs";
+                 "  Backend:  Spring Boot (Java), PHP (Yii2), Node.js/Express\n" +
+                 "  Database: MariaDB / MySQL\n" +
+                 "  Frontend: Angular, Ionic/Capacitor, Electron, Tailwind CSS\n" +
+                 "  DevOps:   Docker, Kubernetes/k3s, Nginx, Portainer, GitLab CI/CD, n8n\n" +
+                 "  AI:       RAG ibrido (ChromaDB + BM25), Multi-LLM, MCP, Local LLMs\n" +
+                 "  Realtime: MQTT, WebSocket/SSE, Raspberry Pi, Web Speech (TTS/STT)";
         break;
       case "projects":
         output = "PROGETTI CHIAVE:\n" +
                  "--------------------------------------------------\n" +
-                 "1. Assistente AI Aziendale (RAG)\n" +
-                 "   Core engine per indicizzazione documentale, lettura email e web crawling.\n\n" +
-                 "2. CePosto Platform (www.ceposto.it)\n" +
-                 "   Ottimizzazione, sviluppo evolutivo e manutenzione dell'ecosistema SaaS di prenotazione online e agende digitali.\n\n" +
+                 "1. CePosto Platform (www.ceposto.it)\n" +
+                 "   Sviluppo evolutivo dell'ecosistema SaaS di prenotazione online e agende digitali.\n\n" +
+                 "2. Assistente AI Aziendale (RAG) - progetto Geppo\n" +
+                 "   Microservizi Flask con RAG ibrido (ChromaDB + BM25) e orchestrazione multi-LLM.\n\n" +
                  "3. ToDo (Enterprise Workflows)\n" +
-                 "   Task & Sprint manager Angular/Spring Boot sul modello Jira con integrazione git, CRM commerciale ed helpdesk.\n\n" +
-                 "4. Gender Hack 2026 - 1° Classificato\n" +
-                 "   Piattaforma 'Mind the Gap' per l'equità salariale, vincitrice nazionale.\n\n" +
-                 "5. Server & n8n Automation\n" +
-                 "   Migrazione a zero downtime di 45+ workflow strategici aziendali con Portainer.";
+                 "   Task & Sprint manager Angular/Spring Boot con integrazione Git, CRM ed helpdesk.\n\n" +
+                 "4. Infrastruttura Docker & Reverse Proxy\n" +
+                 "   Containerizzazione multi-dominio dietro reverse proxy Nginx.\n\n" +
+                 "5. Monitor Accettazione & Survey (Realtime)\n" +
+                 "   Display di coda MQTT e questionari, anche su Raspberry Pi in modalità kiosk.";
         break;
       case "experience":
         output = "PERCORSO PROFESSIONALE & ACCADEMICO:\n" +
                  "--------------------------------------------------\n" +
-                 "💼 Full-Stack Developer | Icsone (2023 - Presente)\n" +
-                 "   - Orchestrazione flussi e automazione con n8n.\n" +
-                 "   - Sviluppo moduli RAG per automatizzare gestione mail e drive aziendale.\n\n" +
+                 "💼 Software Engineer (Full-Stack & AI) | Icsone (2023 - Presente)\n" +
+                 "   - Architetture AI: microservizi RAG multi-provider con ricerca ibrida.\n" +
+                 "   - Orchestrazione di flussi e automazione con n8n.\n" +
+                 "   - Infrastruttura containerizzata (Docker/Nginx/Portainer) e sistemi realtime/IoT.\n\n" +
                  "🎓 Ingegneria Informatica (2° Anno) | UniSalento (2024 - In corso)\n" +
                  "   - Metodologie ingegneristiche applicate ed algoritmi fondamentali.";
         break;
@@ -333,11 +355,6 @@ export default function App() {
         setTerminalHistory([]);
         setTerminalInput("");
         return;
-      case "ai":
-        output = "L'assistente virtuale AT-AI è posizionato sulla destra dello schermo.\n" +
-                 "Utilizza un server Express + SDK @google/genai con modello gemini-3.5-flash.\n" +
-                 "Il modello è istruito con il contesto dettagliato sul curriculum di Alexandro.";
-        break;
       default:
         // Check for theme shortcuts
         if (cleanInput.startsWith("theme ")) {
@@ -413,6 +430,14 @@ export default function App() {
     ? PROJECTS_DATA 
     : PROJECTS_DATA.filter(p => p.category === activeTab);
 
+  const categoryLabels: Record<Project["category"], string> = {
+    ai: "AI & Data",
+    devops: "DevOps / Infra",
+    web: "Web & Realtime",
+    mobile: "Mobile & Desktop",
+    all: "Tutti",
+  };
+
   // Helper for terminal styling classes
   const getTerminalColors = () => {
     switch (terminalTheme) {
@@ -464,7 +489,7 @@ export default function App() {
             <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center font-bold text-slate-950">AT</div>
             <div>
               <span className="text-white font-semibold text-base tracking-tight block">Alexandro Tornese</span>
-              <span className="text-[10px] text-cyan-400 font-mono tracking-wider block uppercase">Full Stack Developer</span>
+              <span className="text-[10px] text-cyan-400 font-mono tracking-wider block uppercase">Software Engineer</span>
             </div>
           </div>
           
@@ -496,7 +521,7 @@ export default function App() {
         <section id="hero-section" className="py-12 lg:py-20 flex flex-col lg:flex-row gap-12 items-center justify-between">
           <div className="flex-1 space-y-6 text-center lg:text-left">
             <div className="inline-block px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs font-bold rounded-full uppercase tracking-tighter">
-              Full Stack Developer & DevOps
+              Software Engineer · AI, Backend & Distributed Systems
             </div>
             
             <h1 className="text-5xl sm:text-6xl font-bold text-white leading-tight">
@@ -506,7 +531,7 @@ export default function App() {
             </h1>
             
             <p className="text-lg text-slate-400 leading-relaxed pr-0 lg:pr-10">
-              Specializzato in architetture moderne, trasformo visioni complesse in prodotti performanti. Unisco il rigore accademico di <strong>Ingegneria Informatica</strong> (UniSalento) all'esperienza di sviluppo sul campo presso <strong>Icsone</strong>.
+              Progetto sistemi che spaziano dall'AI generativa (RAG multi-provider) al backend e all'infrastruttura distribuita, fino a soluzioni realtime e app mobile/desktop. Unisco il rigore accademico di <strong>Ingegneria Informatica</strong> (UniSalento) all'esperienza di sviluppo sul campo presso <strong>Icsone</strong>.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 justify-center lg:justify-start pt-2">
@@ -527,7 +552,7 @@ export default function App() {
             {/* Quick stats panel */}
             <div className="grid grid-cols-3 gap-6 max-w-md pt-8 mx-auto lg:mx-0 border-t border-slate-900">
               <div>
-                <p className="text-3xl font-extrabold text-white font-mono hover:text-cyan-400 transition-colors">3+</p>
+                <p className="text-3xl font-extrabold text-white font-mono hover:text-cyan-400 transition-colors">4+</p>
                 <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Anni di codice</p>
               </div>
               <div>
@@ -535,8 +560,8 @@ export default function App() {
                 <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Hackathon 2026</p>
               </div>
               <div>
-                <p className="text-3xl font-extrabold text-white font-mono hover:text-cyan-400 transition-colors">45+</p>
-                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Task n8n attivi</p>
+                <p className="text-3xl font-extrabold text-white font-mono hover:text-cyan-400 transition-colors">50k+</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Documenti AI</p>
               </div>
             </div>
           </div>
@@ -557,7 +582,7 @@ export default function App() {
                   <span className="text-xs font-mono font-bold text-slate-200 tracking-wider">DEV-SANDBOX: ACTIVE DEVOPS NODE</span>
                 </div>
                 <div className="text-[10px] font-mono text-cyan-400 flex items-center gap-1.5 bg-cyan-500/10 px-2.5 py-0.5 rounded border border-cyan-500/20">
-                  <Activity className="w-3 h-3 animate-pulse" /> Uptime: 99.9%
+                  <Activity className="w-3 h-3 animate-pulse" /> STATUS: HEALTHY
                 </div>
               </div>
 
@@ -566,7 +591,16 @@ export default function App() {
                 
                 {/* Section A: Replica Instance Tuner Blocks */}
                 <div className="space-y-3">
-                  <p className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-wider">Orchestratore Sandbox Repliche</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-wider">Orchestratore Sandbox Repliche</p>
+                    <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border ${
+                      trafficScale === "surge"
+                        ? "text-amber-400 border-amber-500/30 bg-amber-500/10"
+                        : "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
+                    }`}>
+                      HPA: {trafficScale === "surge" ? "AUTO-SCALING" : "STABLE"}
+                    </span>
+                  </div>
                   
                   <div className="grid grid-cols-1 gap-2.5">
                     {clusterServices.map((srv) => (
@@ -788,7 +822,7 @@ export default function App() {
                     <Briefcase className="w-4 h-4 text-cyan-400" />
                     <div>
                       <p className="text-xs text-slate-500 leading-none uppercase tracking-wider">Ruolo Corrente</p>
-                      <p className="text-sm text-slate-200 mt-1 font-semibold">Full-Stack Developer presso Icsone</p>
+                      <p className="text-sm text-slate-200 mt-1 font-semibold">Software Engineer presso Icsone</p>
                     </div>
                   </div>
                   <div className="flex gap-3 items-center">
@@ -802,7 +836,7 @@ export default function App() {
                     <Compass className="w-4 h-4 text-cyan-400" />
                     <div>
                       <p className="text-xs text-slate-500 leading-none uppercase tracking-wider">Focus Chiave</p>
-                      <p className="text-sm text-slate-200 mt-1 font-semibold">Architetture AI RAG, DevOps & CI/CD</p>
+                      <p className="text-sm text-slate-200 mt-1 font-semibold">AI & RAG, Backend distribuiti, Realtime/IoT</p>
                     </div>
                   </div>
                 </div>
@@ -824,10 +858,10 @@ export default function App() {
               
               <div className="space-y-4 text-slate-400 leading-relaxed text-sm sm:text-base">
                 <p>
-                  Con circa tre anni di esperienza lavorativa continuativa nell'IT, ho concentrato il mio operato sulla scrittura di codice ordinato e la strutturazione di automazioni aziendali complesse. Operare regolarmente nello stack DevOps mi ha educato a concepire soluzioni software che non si limitino a funzionare in locale, ma che risultino scalabili, resilienti ed efficienti una volta distribuite in contesti Cloud.
+                  Con circa quattro anni di esperienza lavorativa continuativa nell'IT, ho lavorato trasversalmente sull'intero ciclo del software: dall'architettura AI e backend all'infrastruttura containerizzata, fino a sistemi realtime/IoT e applicazioni mobile e desktop. Questo spettro ampio mi ha educato a concepire soluzioni che non si limitino a funzionare in locale, ma che risultino scalabili, resilienti ed efficienti una volta distribuite in produzione.
                 </p>
                 <p>
-                  Attualmente affronto la sfida quotidiana di coordinare il mio lavoro full-time come developer presso <strong>Icsone</strong> con il superamento accademico del corso di laurea in <strong>Ingegneria Informatica</strong> all'Università del Salento. Questa intersezione continua mi consente di applicare l'algebra lineare e le strutture dati direttamente all'interno delle pipeline Docker, delle interrogazioni PostgreSQL e degli agenti intelligenti.
+                  Attualmente affronto la sfida quotidiana di coordinare il mio lavoro full-time come developer presso <strong>Icsone</strong> con il superamento accademico del corso di laurea in <strong>Ingegneria Informatica</strong> all'Università del Salento. Questa intersezione continua mi consente di applicare l'algebra lineare e le strutture dati direttamente all'interno delle pipeline Docker, delle interrogazioni MariaDB e degli agenti intelligenti.
                 </p>
                 <p>
                   Sono convinto che il vero progresso sia guidato dalla condivisione dei saperi e dal rispetto degli standard metodologici. Il mio approccio al lavoro di squadra si traduce in una documentazione meticolosa, in test rigorosi e nella costante semplificazione delle architetture inutilmente complesse.
@@ -877,6 +911,7 @@ export default function App() {
                       {group.iconName === "layout" && <Layout className="w-5 h-5" />}
                       {group.iconName === "terminal" && <Terminal className="w-5 h-5" />}
                       {group.iconName === "cpu" && <Cpu className="w-5 h-5" />}
+                      {group.iconName === "radio" && <Radio className="w-5 h-5" />}
                     </span>
                     <div>
                       <h4 className="font-bold text-white text-base tracking-tight">{group.category}</h4>
@@ -1003,7 +1038,7 @@ export default function App() {
                   activeTab === "ai" ? "bg-cyan-505 bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
                 }`}
               >
-                AI & RAG
+                AI & Data
               </button>
               <button 
                 onClick={() => setActiveTab("devops")}
@@ -1011,7 +1046,7 @@ export default function App() {
                   activeTab === "devops" ? "bg-cyan-505 bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
                 }`}
               >
-                DevOps
+                DevOps & Infra
               </button>
               <button 
                 onClick={() => setActiveTab("web")}
@@ -1019,7 +1054,15 @@ export default function App() {
                   activeTab === "web" ? "bg-cyan-505 bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
                 }`}
               >
-                Web
+                Web & Realtime
+              </button>
+              <button 
+                onClick={() => setActiveTab("mobile")}
+                className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  activeTab === "mobile" ? "bg-cyan-505 bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Mobile
               </button>
             </div>
           </div>
@@ -1044,7 +1087,7 @@ export default function App() {
                     {/* Visual header with colored bar context */}
                     <div className="flex justify-between items-start">
                       <span className="text-[10px] bg-cyan-550/10 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 rounded-md font-mono tracking-widest font-semibold capitalize text-cyan-400">
-                        {project.category === "ai" ? "Artificial Intelligence" : project.category === "devops" ? "DevOps / Infr" : "Sviluppo & Team"}
+                        {categoryLabels[project.category]}
                       </span>
                       <span className="text-slate-600 text-[10px] font-mono">PROJECT_{project.id.substring(0,3).toUpperCase()}</span>
                     </div>
@@ -1056,12 +1099,15 @@ export default function App() {
                     </p>
 
                     {/* Numeric key indicators metric row */}
-                    {project.metrics && (
-                      <div className="grid grid-cols-3 gap-2 bg-slate-950/40 p-3 rounded-xl border border-slate-850">
+                    {project.metrics && project.metrics.length > 0 && (
+                      <div
+                        className="grid gap-2 bg-slate-950/40 p-3 rounded-xl border border-slate-850"
+                        style={{ gridTemplateColumns: `repeat(${project.metrics.length}, minmax(0, 1fr))` }}
+                      >
                         {project.metrics.map((met, mIdx) => (
-                          <div key={mIdx} className="text-center">
-                            <p className="text-cyan-450 text-cyan-400 font-mono font-bold text-[13px]">{met?.value || ''}</p>
-                            <p className="text-[9px] text-slate-500 truncate mt-0.5">{met?.label || ''}</p>
+                          <div key={mIdx} className="text-center px-1">
+                            <p className="text-cyan-400 font-mono font-bold text-sm sm:text-base leading-tight break-words">{met?.value || ''}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{met?.label || ''}</p>
                           </div>
                         ))}
                       </div>
@@ -1173,7 +1219,7 @@ export default function App() {
                 <span className="text-[10px] text-cyan-400 font-mono tracking-widest block font-bold uppercase">Sandbox DevOps</span>
                 <h3 className="text-2xl font-bold text-white tracking-tight">Simulatore Interattivo di Automazioni</h3>
                 <p className="text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed">
-                  Trascina l'attivazione ed esegui i workflow reali su cui lavoro ordinariamente (n8n, integrazioni ToDo e performance di CePosto).
+                  Esegui i workflow reali su cui lavoro ordinariamente: la pipeline AI del progetto Geppo, il deploy Kubernetes via CI/CD e l'auto-branching Git di ToDo.
                 </p>
               </div>
             </div>
@@ -1201,9 +1247,9 @@ export default function App() {
                   } ${pipelineRunning ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   <p className="text-xs font-bold font-mono text-cyan-400 mb-1 uppercase tracking-wider">
-                    {recipeKey === "ai-triage" ? "🤖 AI RAG" : recipeKey === "ceposto-cache" ? "⚡ CEPOSTO" : "🛠️ TODO SYSTEM"}
+                    {recipeKey === "ai-triage" ? "🧠 GEPPO AI" : recipeKey === "k8s-deploy" ? "☸️ K8S DEPLOY" : "🛠️ TODO SYSTEM"}
                   </p>
-                  <p className="text-xs font-bold truncate">{RECIPES_DATA[recipeKey].title.replace(" (RAG + AI)", "").replace(" Engine (www.ceposto.it)", "")}</p>
+                  <p className="text-xs font-bold truncate">{RECIPES_DATA[recipeKey].title}</p>
                 </button>
               );
             })}
@@ -1515,12 +1561,15 @@ export default function App() {
                 </div>
 
                 {/* Grid metrics details row */}
-                {selectedProject.metrics && (
-                  <div className="grid grid-cols-3 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-850">
+                {selectedProject.metrics && selectedProject.metrics.length > 0 && (
+                  <div
+                    className="grid gap-4 bg-slate-950 p-4 rounded-xl border border-slate-850"
+                    style={{ gridTemplateColumns: `repeat(${selectedProject.metrics.length}, minmax(0, 1fr))` }}
+                  >
                     {selectedProject.metrics.map((m, idx) => (
-                      <div key={idx} className="text-center">
-                        <p className="text-cyan-400 font-mono font-bold text-base sm:text-lg">{m?.value || ''}</p>
-                        <p className="text-[10px] text-slate-500 truncate mt-0.5">{m?.label || ''}</p>
+                      <div key={idx} className="text-center px-1">
+                        <p className="text-cyan-400 font-mono font-bold text-base sm:text-lg leading-tight break-words">{m?.value || ''}</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{m?.label || ''}</p>
                       </div>
                     ))}
                   </div>
