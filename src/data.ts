@@ -8,6 +8,7 @@ const PROJECTS_DATA_RAW: Project[] = [
     fullDescription: "Sviluppo avanzato della struttura core per un sistema di assistenza aziendale intelligente basato su Large Language Models (LLM), noto internamente come progetto Geppo. L'applicazione sfrutta tecniche RAG (Retrieval-Augmented Generation) per connettere la conoscenza interna securizzata con modelli di intelligenza artificiale. Il core è realizzato come flotta di microservizi Flask (main, mqtt, import, audit) che orchestrano molteplici provider LLM (Gemini, Anthropic, OpenAI, DeepSeek, Qwen) con streaming SSE e generazione/editing immagini, mentre il recupero documentale combina ricerca vettoriale su ChromaDB con ranking lessicale BM25 e un reranker pesato per dominio. La piattaforma espone inoltre un catalogo di servizi di sincronizzazione e ingestion file (Google Drive, web crawling e fogli Excel), la selezione di preset configurabili, la gestione delle voci e servizi IVR per l'assistenza telefonica.",
     category: "ai",
     tags: ["AI", "RAG", "LLM", "Google Drive API", "Web Crawling", "Excel", "IVR", "Node.js", "Python", "Flask", "ChromaDB", "BM25"],
+    links: [{ label: "geppo-ai.com", url: "https://www.geppo-ai.com/" }],
     accentColor: "cyan-500",
     achievements: [
       "Ideazione e sviluppo dell'architettura core di indexing e retrieval documentale.",
@@ -29,6 +30,7 @@ const PROJECTS_DATA_RAW: Project[] = [
     fullDescription: "Frontend Angular 20 basato su signals per l'assistente aziendale, progettato per un uso mobile-first tramite semplice scansione di un QR code. Gestisce l'input vocale (Speech-to-Text) con visualizzazione dello spettro audio e la risposta parlata (Text-to-Speech), con selettore multilingua alimentato dal backend e workaround specifici per iOS.",
     category: "ai",
     tags: ["Angular 20", "Signals", "Web Speech API", "TTS", "STT", "Mobile-first"],
+    links: [{ label: "geppo-ai.com", url: "https://www.geppo-ai.com/" }],
     accentColor: "cyan-400",
     achievements: [
       "Ciclo voce completo (registrazione, trascrizione, riproduzione) con Web Audio API e visualizzazione del segnale.",
@@ -43,6 +45,7 @@ const PROJECTS_DATA_RAW: Project[] = [
     fullDescription: "Sviluppo ordinario ed evolutivo sull'ecosistema SaaS di CePosto (www.ceposto.it). La piattaforma è utilizzata ampiamente da Comuni, Pubbliche Amministrazioni, studi professionali ed aziende per la prenotazione online di appuntamenti flessibili, la pianificazione degli slot orari e l'eliminazione delle code, con integrazione nativa per App mobile iOS/Android e portali web.",
     category: "web",
     tags: ["SaaS", "Yii2 PHP", "MariaDB", "REST APIs", "Booking Engine", "Web App"],
+    links: [{ label: "Sito", url: "https://www.ceposto.it" }, { label: "Prova l'app", url: "https://app.ceposto.it" }],
     accentColor: "cyan-400",
     achievements: [
       "Ingegnerizzazione di logiche calendarizzanti complesse con gestione flessibile di eccezioni, ricorrenze e disponibilità degli operatori.",
@@ -140,6 +143,7 @@ const PROJECTS_DATA_RAW: Project[] = [
     fullDescription: "Backend dell'applicativo SempliSwitch: API REST documentate via Swagger/OpenAPI, gestione di contratti, offerte e provvigioni, e snapshot di stato ottimizzati per grandi volumi. Il progetto include la containerizzazione e l'orchestrazione su cluster Kubernetes/k3s con manuale operativo dedicato.",
     category: "devops",
     tags: ["Spring Boot", "Java", "Kubernetes", "k3s", "Swagger", "Docker"],
+    links: [{ label: "semplicom.com", url: "https://semplicom.com/" }],
     accentColor: "emerald-500",
     achievements: [
       "Definizione di contratti API e permessi documentati con report dedicato.",
@@ -168,6 +172,7 @@ const PROJECTS_DATA_RAW: Project[] = [
     fullDescription: "Applicazione Ionic/Angular distribuita su iOS, Android e web tramite Capacitor, pensata per la gestione operativa e business della piattaforma CePosto. Integra componenti PrimeNG, mappe Leaflet, grafici Chart.js/D3, gestione stato con Akita, comunicazione realtime via MQTT e supporto multi-lingua.",
     category: "mobile",
     tags: ["Ionic", "Angular", "Capacitor", "PrimeNG", "Leaflet", "Akita", "MQTT"],
+    links: [{ label: "ceposto.it", url: "https://www.ceposto.it" }],
     accentColor: "indigo-500",
     achievements: [
       "Distribuzione multipiattaforma (iOS/Android/Web) da un'unica codebase Angular.",
@@ -202,10 +207,10 @@ export const SKILLS_DATA: SkillGroup[] = [
     description: "Creazione di logiche reattive, strutturazione dati e ottimizzazione queries.",
     iconName: "server",
     skills: [
-      { name: "Spring Boot (Java)", level: 88, isCore: true },
-      { name: "PHP / Yii2", level: 85, isCore: true },
-      { name: "MariaDB / MySQL", level: 90, isCore: true },
-      { name: "Node.js / Express", level: 82, isCore: false }
+      { name: "Spring Boot (Java)" },
+      { name: "PHP / Yii2" },
+      { name: "MariaDB / MySQL" },
+      { name: "Node.js / Express" }
     ]
   },
   {
@@ -213,10 +218,10 @@ export const SKILLS_DATA: SkillGroup[] = [
     description: "Sviluppo di interfacce interattive moderne, scalabili e mobile-ready.",
     iconName: "layout",
     skills: [
-      { name: "Angular", level: 85, isCore: true },
-      { name: "Ionic / Capacitor", level: 82, isCore: true },
-      { name: "HTML5 & CSS3 / Tailwind", level: 95, isCore: true },
-      { name: "Electron (Desktop)", level: 80, isCore: false }
+      { name: "Angular" },
+      { name: "Ionic / Capacitor" },
+      { name: "HTML5 & CSS3 / Tailwind" },
+      { name: "Electron (Desktop)" }
     ]
   },
   {
@@ -224,11 +229,11 @@ export const SKILLS_DATA: SkillGroup[] = [
     description: "Amministrazione di infrastrutture agili e automatizzate.",
     iconName: "terminal",
     skills: [
-      { name: "Docker & Containerization", level: 88, isCore: true },
-      { name: "n8n Workflow Automation", level: 92, isCore: true },
-      { name: "Kubernetes / k3s", level: 78, isCore: false },
-      { name: "Nginx & Reverse Proxy", level: 82, isCore: false },
-      { name: "GitLab CI/CD Pipelines", level: 80, isCore: false }
+      { name: "Docker & Containerization" },
+      { name: "n8n Workflow Automation" },
+      { name: "Kubernetes / k3s" },
+      { name: "Nginx & Reverse Proxy" },
+      { name: "GitLab CI/CD Pipelines" }
     ]
   },
   {
@@ -236,11 +241,11 @@ export const SKILLS_DATA: SkillGroup[] = [
     description: "Architetture AI generative, pipeline dati e ricerca semantica.",
     iconName: "cpu",
     skills: [
-      { name: "RAG Architectures", level: 85, isCore: true },
-      { name: "Multi-LLM Orchestration", level: 82, isCore: true },
-      { name: "Prompt Engineering", level: 90, isCore: true },
-      { name: "Model Context Protocol (MCP)", level: 80, isCore: false },
-      { name: "Vector DB (ChromaDB) / BM25", level: 78, isCore: false }
+      { name: "RAG Architectures" },
+      { name: "Multi-LLM Orchestration" },
+      { name: "Prompt Engineering" },
+      { name: "Model Context Protocol (MCP)" },
+      { name: "Vector DB (ChromaDB) / BM25" }
     ]
   },
   {
@@ -248,11 +253,11 @@ export const SKILLS_DATA: SkillGroup[] = [
     description: "Sistemi distribuiti in tempo reale, integrazione MQTT e dispositivi edge.",
     iconName: "radio",
     skills: [
-      { name: "MQTT & Broker", level: 88, isCore: true },
-      { name: "WebSocket / SSE", level: 82, isCore: true },
-      { name: "Raspberry Pi / Kiosk", level: 80, isCore: false },
-      { name: "Web Speech (TTS/STT)", level: 82, isCore: false },
-      { name: "Python (Data & Monitoring)", level: 80, isCore: false }
+      { name: "MQTT & Broker" },
+      { name: "WebSocket / SSE" },
+      { name: "Raspberry Pi / Kiosk" },
+      { name: "Web Speech (TTS/STT)" },
+      { name: "Python (Data & Monitoring)" }
     ]
   }
 ];

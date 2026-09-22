@@ -6,14 +6,13 @@ export interface Project {
   category: "ai" | "devops" | "web" | "mobile" | "all";
   tags: string[];
   achievements: string[];
+  links?: { label: string; url: string }[];
   metrics?: { label: string; value: string }[];
   accentColor: string; // Tailwind color class like 'indigo-500'
 }
 
 export interface Skill {
   name: string;
-  level: number; // Percentage 0-100
-  isCore: boolean;
 }
 
 export interface SkillGroup {

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CV — Alexandro Tornese | Software Engineer</title>
+  <meta name="description" content="Curriculum Vitae di Alexandro Tornese, Software Engineer — AI/RAG, Backend, DevOps, Realtime/IoT." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2306b6d4'/%3E%3Ctext x='50' y='68' font-family='Arial' font-size='52' font-weight='bold' fill='%23020617' text-anchor='middle'%3EAT%3C/text%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --ink: #0f172a;
+      --muted: #475569;
+      --faint: #64748b;
+      --line: #e2e8f0;
+      --accent: #0891b2;
+      --accent-soft: #ecfeff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: #f1f5f9;
+      font-size: 13.5px;
+      line-height: 1.55;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      max-width: 820px;
+      margin: 24px auto;
+      background: #fff;
+      padding: 44px 52px;
+      box-shadow: 0 10px 40px rgba(2, 6, 23, 0.12);
+      border-radius: 8px;
+    }
+
+    /* Header */
+    header { display: flex; align-items: center; gap: 18px; border-bottom: 3px solid var(--accent); padding-bottom: 18px; }
+    .avatar {
+      width: 78px; height: 78px; border-radius: 16px; overflow: hidden; flex: 0 0 auto;
+      background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 26px; letter-spacing: 0.5px;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .head-main { flex: 1; }
+    h1 { margin: 0; font-size: 27px; letter-spacing: -0.02em; }
+    .role { color: var(--accent); font-weight: 700; font-size: 14px; margin-top: 2px; }
+    .contact { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .contact a { color: var(--muted); text-decoration: none; }
+    .contact span::before, .contact a::before { content: ""; }
+
+    h2 {
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent);
+      margin: 26px 0 10px; padding-bottom: 5px; border-bottom: 1px solid var(--line);
+    }
+    h2:first-of-type { margin-top: 22px; }
+
+    .summary { color: var(--muted); }
+
+    .entry { margin-bottom: 14px; }
+    .entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .entry-title { font-weight: 700; font-size: 14.5px; }
+    .entry-org { color: var(--accent); font-weight: 600; font-size: 13px; }
+    .entry-period { color: var(--faint); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .entry-desc { color: var(--muted); margin-top: 4px; }
+    ul { margin: 6px 0 0; padding-left: 18px; }
+    li { margin: 2px 0; color: var(--muted); }
+
+    .skills { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 28px; }
+    .skill-row { }
+    .skill-cat { font-weight: 700; font-size: 12.5px; }
+    .skill-list { color: var(--muted); font-size: 12.5px; }
+
+    .projects { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 26px; }
+    .proj-title { font-weight: 700; font-size: 13px; }
+    .proj-desc { color: var(--muted); font-size: 12.5px; }
+    .proj-link { color: var(--accent); font-size: 11.5px; text-decoration: none; }
+
+    .langs { color: var(--muted); }
+
+    footer { margin-top: 26px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--faint); font-size: 11px; text-align: center; }
+
+    .toolbar { position: fixed; top: 16px; right: 16px; z-index: 10; }
+    .toolbar button {
+      background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 11px 18px;
+      font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 20px rgba(8, 145, 178, 0.35);
+    }
+    .toolbar button:hover { background: #0e7490; }
+
+    @media print {
+      body { background: #fff; font-size: 11.7px; }
+      .page { margin: 0; box-shadow: none; border-radius: 0; max-width: none; padding: 0; }
+      .no-print { display: none !important; }
+      h2 { margin-top: 16px; }
+      .entry { margin-bottom: 10px; }
+      a { color: inherit; }
+      @page { size: A4; margin: 15mm 16mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar no-print">
+    <button onclick="window.print()">Stampa / Salva come PDF</button>
+  </div>
+
+  <div class="page">
+    <header>
+      <div class="avatar" id="avatar">AT</div>
+      <div class="head-main">
+        <h1>Alexandro Tornese</h1>
+        <div class="role">Software Engineer — AI · Backend · DevOps · Distributed Systems</div>
+        <div class="contact">
+          <a href="mailto:alexandro4317@gmail.com">alexandro4317@gmail.com</a>
+          <a href="https://github.com/alexandro4317" target="_blank" rel="noreferrer">github.com/alexandro4317</a>
+          <a href="https://www.linkedin.com/in/alexandro-tornese/" target="_blank" rel="noreferrer">linkedin.com/in/alexandro-tornese</a>
+          <span>Salento, Puglia · Disponibile in remoto</span>
+        </div>
+      </div>
+    </header>
+
+    <h2>Profilo</h2>
+    <p class="summary">
+      Software Engineer con circa 4 anni di esperienza nello sviluppo di prodotti digitali usati in contesti
+      pubblici e aziendali. Opero trasversalmente su AI generativa (RAG multi-provider e multi-LLM), backend,
+      infrastruttura containerizzata e sistemi realtime/IoT. Unisco il rigore accademico di Ingegneria Informatica
+      (UniSalento) all'esperienza sul campo, con focus su soluzioni pratiche che migliorano processi e qualità del servizio.
+    </p>
+
+    <h2>Esperienza</h2>
+    <div class="entry">
+      <div class="entry-head">
+        <div>
+          <div class="entry-title">Software Engineer (Full-Stack &amp; AI)</div>
+          <div class="entry-org">Icsone — Salento, Italia</div>
+        </div>
+        <div class="entry-period">2023 — Presente</div>
+      </div>
+      <div class="entry-desc">
+        Progetto e sviluppo di applicativi proprietari sull'intero spettro del software: dal backend al frontend,
+        dall'AI all'infrastruttura. Lavoro in metodologia Agile all'interno di un team strutturato.
+      </div>
+      <ul>
+        <li>Co-responsabile dell'infrastruttura containerizzata (Docker, Nginx, Portainer) e delle migrazioni a zero downtime.</li>
+        <li>Cuore AI aziendale: microservizi RAG multi-provider con ricerca ibrida vettoriale (ChromaDB) + BM25 e orchestrazione multi-LLM.</li>
+        <li>Applicativi realtime/IoT (monitor e totem) e app mobile (Ionic) e desktop (Electron).</li>
+        <li>Automazione di processi business-critical (workflow n8n, CI/CD GitLab, auto-branching Git).</li>
+      </ul>
+    </div>
+
+    <h2>Formazione</h2>
+    <div class="entry">
+      <div class="entry-head">
+        <div>
+          <div class="entry-title">Ingegneria Informatica (2° anno in corso)</div>
+          <div class="entry-org">Università del Salento (UniSalento) — Lecce</div>
+        </div>
+        <div class="entry-period">2024 — 2027 (previsto)</div>
+      </div>
+      <div class="entry-desc">
+        Algoritmi e strutture dati, calcolo numerico, architetture dei sistemi d'elaborazione, basi di dati
+        relazionali, reti e fondamenti di fisica ed elettronica.
+      </div>
+    </div>
+
+    <h2>Competenze</h2>
+    <div class="skills">
+      <div class="skill-row">
+        <div class="skill-cat">Backend &amp; Database</div>
+        <div class="skill-list">Spring Boot (Java), PHP/Yii2, Node.js/Express, MariaDB/MySQL</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-cat">Frontend &amp; Mobile</div>
+        <div class="skill-list">Angular, Ionic/Capacitor, Electron, HTML5/CSS3, Tailwind CSS</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-cat">DevOps &amp; Automation</div>
+        <div class="skill-list">Docker, Kubernetes/k3s, Nginx, GitLab CI/CD, n8n, Portainer</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-cat">AI &amp; Data</div>
+        <div class="skill-list">RAG, Multi-LLM Orchestration, Prompt Engineering, MCP, ChromaDB/BM25</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-cat">Realtime, IoT &amp; Edge</div>
+        <div class="skill-list">MQTT, WebSocket/SSE, Raspberry Pi/Kiosk, Web Speech (TTS/STT), Python</div>
+      </div>
+    </div>
+
+    <h2>Progetti in evidenza</h2>
+    <div class="projects">
+      <div>
+        <div class="proj-title">CePosto Platform</div>
+        <div class="proj-desc">Ecosistema SaaS di prenotazione online e gestione code per PA, Comuni e aziende. 3M+ prenotazioni, 50k+ utenti/mese.</div>
+        <a class="proj-link" href="https://www.ceposto.it" target="_blank" rel="noreferrer">ceposto.it</a>
+      </div>
+      <div>
+        <div class="proj-title">Assistente AI Aziendale (RAG) — Geppo</div>
+        <div class="proj-desc">Microservizi RAG con ricerca ibrida (ChromaDB + BM25), orchestrazione multi-LLM e parsing/classificazione email. 50.000+ documenti indicizzati, 5 provider LLM.</div>
+        <a class="proj-link" href="https://www.geppo-ai.com/" target="_blank" rel="noreferrer">geppo-ai.com</a>
+      </div>
+      <div>
+        <div class="proj-title">ToDo — Enterprise Workflow Manager</div>
+        <div class="proj-desc">Task &amp; Sprint management Angular/Spring Boot con integrazione Git, CRM ed helpdesk. 15.000+ ticket/anno.</div>
+      </div>
+      <div>
+        <div class="proj-title">SempliSwitch Backend</div>
+        <div class="proj-desc">Backend Spring Boot per il dominio switch/finanziario, deployato su Kubernetes/k3s con API documentate Swagger.</div>
+        <a class="proj-link" href="https://semplicom.com/" target="_blank" rel="noreferrer">semplicom.com</a>
+      </div>
+      <div>
+        <div class="proj-title">Infrastruttura Docker &amp; Reverse Proxy</div>
+        <div class="proj-desc">Ecosistema multi-dominio containerizzato dietro reverse proxy Nginx, con stack docker-compose replicabili.</div>
+      </div>
+      <div>
+        <div class="proj-title">Monitor Accettazione (Realtime Kiosk)</div>
+        <div class="proj-desc">Display di coda in tempo reale via MQTT su schermi e Raspberry Pi in modalità kiosk, con annuncio vocale.</div>
+      </div>
+    </div>
+
+    <h2>Lingue</h2>
+    <p class="langs">Italiano (madrelingua) · Inglese (B2 certificato)</p>
+
+    <footer>
+      Alexandro Tornese — Software Engineer · Curriculum aggiornato al <span id="cv-date"></span>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("cv-date").textContent = new Date().toLocaleDateString("it-IT", {
+      month: "long", year: "numeric"
+    });
+    var img = new Image();
+    img.onload = function () {
+      var a = document.getElementById("avatar");
+      a.innerHTML = "";
+      a.appendChild(img);
+    };
+    img.src = "/profile.jpg";
+  </script>
+</body>
+</html>

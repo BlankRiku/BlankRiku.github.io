@@ -31,11 +31,37 @@ import {
   Check,
   Plus,
   Minus,
-  Radio
+  Radio,
+  Download,
+  Menu,
+  Languages
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PROJECTS_DATA, SKILLS_DATA, TIMELINE_DATA } from "./data";
 import { Project, SkillGroup, TimelineItem, TerminalEntry } from "./types";
+import DevOpsSandbox from "./DevOpsSandbox";
+
+/**
+ * Dati di contatto e link esterni centralizzati.
+ * TODO(auth): aggiornare `linkedin` con l'URL del profilo reale e
+ * `cvUrl` con il path del CV PDF rigenerato (es. "/cv-alexandro-tornese.pdf").
+ */
+export const CONTACT = {
+  name: "Alexandro Tornese",
+  email: "alexandro4317@gmail.com",
+  github: "https://github.com/alexandro4317",
+  linkedin: "https://www.linkedin.com/in/alexandro-tornese/",
+  cvUrl: "/cv-alexandro-tornese.pdf", // CV reale (PDF)
+  location: "Salento, Puglia / Remoto",
+};
+
+const NAV_ITEMS = [
+  { id: "about-section", label: "Chi Sono" },
+  { id: "skills-section", label: "Competenze" },
+  { id: "timeline-section", label: "Esperienza" },
+  { id: "projects-section", label: "Progetti" },
+  { id: "how-section", label: "Come lavoro" },
+];
 
 export default function App() {
   const [activeTab, setActiveTab ] = useState<"ai" | "devops" | "web" | "mobile" | "all">("all");
@@ -144,28 +170,38 @@ export default function App() {
     }, 1300);
   };
 
-  // DevOps Cluster Sandbox Simulator State
-  const [clusterServices, setClusterServices] = useState([
-    { id: "web", name: "deploy/nginx-proxy", label: "Reverse Proxy (Nginx)", replicas: 2, max: 4, type: "container", color: "cyan" },
-    { id: "core", name: "deploy/ceposto-app", label: "CePosto App (PHP 8.3 / Tomcat)", replicas: 2, max: 6, type: "container", color: "indigo" },
-    { id: "db", name: "svc/mariadb", label: "MariaDB (host)", replicas: 1, max: 2, type: "db", color: "emerald" }
-  ]);
-  const [trafficScale, setTrafficScale] = useState<"idle" | "normal" | "surge">("normal");
-  
-  // Custom, ultra-responsive lightweight data stream history for SVG Chart (8 coordinates)
-  const [customChartHistory, setCustomChartHistory] = useState<number[]>([15, 25, 42, 35, 50, 45, 62, 58]);
-  const [clusterLogsList, setClusterLogsList] = useState<string[]>([
-    "CLUSTER_INIT: cluster k3s online, namespace di produzione pronto.",
-    "INGRESS: nginx-proxy esposto pubblicamente (rete reverse_proxy_net).",
-    "APP_BOOT: container ceposto-app attivo (Apache + PHP 8.3 / Tomcat).",
-    "DB_CONNECT: pool di connessioni verso MariaDB stabilito."
-  ]);
-  const devopsLogsRef = useRef<HTMLDivElement>(null);
-
   // User contact form state
   const [formState, setFormState] = useState({ name: "", email: "", message: "" });
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("hero-section");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Scrollspy: evidenzia la sezione attualmente in viewport nella navbar.
+  useEffect(() => {
+    const sectionIds = [
+      "hero-section",
+      ...NAV_ITEMS.map((item) => item.id),
+      "contact-section",
+    ];
+    const sections = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => Boolean(el));
+    if (sections.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]) setActiveSection(visible[0].target.id);
+      },
+      { rootMargin: "-45% 0px -50% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
 
   // Auto-scroll for terminal inside their respective overflow containers
   useEffect(() => {
@@ -177,94 +213,20 @@ export default function App() {
     }
   }, [terminalHistory]);
 
-  // Infinite, organic live stream ticker for DevOps Sandbox Console
+  // Chiudi la modale progetto con ESC e blocca lo scroll del body quando è aperta.
   useEffect(() => {
-    // Target repliche per profilo di traffico (Horizontal Pod Autoscaler)
-    const SCALE_TARGETS: Record<"idle" | "normal" | "surge", Record<string, number>> = {
-      idle: { web: 1, core: 1, db: 1 },
-      normal: { web: 2, core: 2, db: 1 },
-      surge: { web: 4, core: 6, db: 2 }
+    if (!selectedProject) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedProject(null);
     };
-
-    const handleDevOpsTick = () => {
-      const timestamps = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-
-      // Horizontal Pod Autoscaler: converge le repliche verso il target del profilo
-      const targets = SCALE_TARGETS[trafficScale];
-      const scaled = clusterServices.map(srv => {
-        const target = Math.min(targets[srv.id] ?? srv.replicas, srv.max);
-        if (srv.replicas === target) return srv;
-        const nextReplicas = srv.replicas < target ? srv.replicas + 1 : srv.replicas - 1;
-        return { ...srv, replicas: nextReplicas };
-      });
-      const autoscaleLogs = scaled
-        .filter((s, i) => s.replicas !== clusterServices[i].replicas)
-        .map(s => `[${timestamps}] [INF] HPA: '${s.name}' → ${s.replicas} repliche (profilo '${trafficScale}').`);
-
-      if (autoscaleLogs.length > 0) setClusterServices(scaled);
-
-      // Performance del cluster calcolata sullo stato post-autoscaling
-      const webCount = scaled.find(s => s.id === "web")?.replicas || 1;
-      const coreCount = scaled.find(s => s.id === "core")?.replicas || 1;
-      const dbCount = scaled.find(s => s.id === "db")?.replicas || 1;
-
-      let baseVal = 40;
-      if (trafficScale === "idle") baseVal = 12;
-      if (trafficScale === "surge") baseVal = 85;
-
-      // Real formula where scaling actually resolves workload stress!
-      const loadFactor = Math.max(8, baseVal - (webCount * 4 + coreCount * 6 + dbCount * 3));
-      const actualLoad = Math.min(99, Math.round(loadFactor + Math.random() * 8));
-
-      // Append new data to SVG coordinates and shift
-      setCustomChartHistory(prev => {
-        const next = [...prev.slice(1), actualLoad];
-        return next;
-      });
-
-      // Spawn random organic live system log entry
-      const prefixes = ["INF", "DEB", "INF", "WRN", "INF"];
-      const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-      
-      let logBody = "";
-      const randomMsg = Math.random();
-      if (trafficScale === "surge") {
-        if (randomMsg < 0.3) {
-          logBody = `TRAFFIC: burst di ${Math.floor(180 + Math.random() * 200)} richieste in ingresso sul reverse proxy.`;
-        } else if (randomMsg < 0.6) {
-          logBody = `PROXY_HEALTH: upstream ceposto-app 200 OK (latency: ${Math.floor(40 + Math.random() * 110)}ms).`;
-        } else {
-          logBody = actualLoad > 75 
-            ? `HPA: carico cluster ${actualLoad}%, scaling orizzontale dei pod in corso.`
-            : `SYS_BALANCED: carico stabilizzato dallo scaling automatico delle repliche.`;
-        }
-      } else if (trafficScale === "idle") {
-        if (randomMsg < 0.5) logBody = `IDLE: nessuna richiesta in ingresso. Ping MariaDB 1.4ms.`;
-        else logBody = `CRON: n8n in attesa, nessun job schedulato in coda.`;
-      } else {
-        if (randomMsg < 0.25) logBody = `INGRESS: GET /api/v1/appuntamenti - 200 OK (Nginx upstream).`;
-        else if (randomMsg < 0.5) logBody = `MARIADB: pool connessioni ${Math.floor(1 + Math.random() * 3)} attive / 10 idle.`;
-        else if (randomMsg < 0.75) logBody = `N8N: workflow 'ToDo GitLab AutoBrancher' completato.`;
-        else logBody = `DOCKER: healthcheck ceposto-app: healthy.`;
-      }
-
-      setClusterLogsList(prev => {
-        const next = [...prev, ...autoscaleLogs, `[${timestamps}] [${prefix}] ${logBody}`];
-        if (next.length > 20) return next.slice(next.length - 20);
-        return next;
-      });
+    document.addEventListener("keydown", handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
     };
-
-    const interval = setInterval(handleDevOpsTick, 2800);
-    return () => clearInterval(interval);
-  }, [clusterServices, trafficScale]);
-
-  // Auto-scroll for DevOps Console Logs
-  useEffect(() => {
-    if (devopsLogsRef.current) {
-      devopsLogsRef.current.scrollTo({ top: devopsLogsRef.current.scrollHeight, behavior: "smooth" });
-    }
-  }, [clusterLogsList]);
+  }, [selectedProject]);
 
   // Terminal command executor
   const handleTerminalSubmit = (e: React.FormEvent) => {
@@ -327,8 +289,10 @@ export default function App() {
                  "   - Metodologie ingegneristiche applicate ed algoritmi fondamentali.";
         break;
       case "contact":
-        output = "E-mail: alexandro4317@gmail.com\n" +
-                 "Sito web: Puoi usare il modulo di contatto in fondo alla pagina per connetterti!";
+        output = `E-mail:   ${CONTACT.email}\n` +
+                 `GitHub:   ${CONTACT.github}\n` +
+                 `LinkedIn: ${CONTACT.linkedin}\n` +
+                 "Puoi anche usare il modulo di contatto in fondo alla pagina.";
         break;
       case "mcp":
         output = "MCP SIMULATION:\n" +
@@ -379,51 +343,23 @@ export default function App() {
     setTerminalInput("");
   };
 
-  // Handle DevOps Replica Scaling Actions
-  const scaleService = (id: string, dir: "up" | "down") => {
-    setClusterServices(prev => prev.map(srv => {
-      if (srv.id === id) {
-        let newReplicas = srv.replicas;
-        if (dir === "up" && srv.replicas < srv.max) newReplicas += 1;
-        if (dir === "down" && srv.replicas > 1) newReplicas -= 1;
-        
-        if (newReplicas !== srv.replicas) {
-          // Log the scaling event organically
-          const timestamps = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-          setClusterLogsList(l => [
-            ...l,
-            `[${timestamps}] [INF] SCALING_EVENT: Scaled service '${srv.name}' to ${newReplicas} replicas.`
-          ]);
-        }
-        return { ...srv, replicas: newReplicas };
-      }
-      return srv;
-    }));
-  };
-
-  const setTrafficProfile = (mode: "idle" | "normal" | "surge") => {
-    setTrafficScale(mode);
-    const timestamps = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    const profileLogs = {
-      idle: "TRAFFIC_MODE_SET: Quiescent System Profile loaded. Minimizing computing resource demand.",
-      normal: "TRAFFIC_MODE_SET: Standard Multi-User Web Traffic profile dispatched. Balanced limits.",
-      surge: "TRAFFIC_MODE_SET: SURGE TRAFFIC wave enabled! Simulating concurrent request storm."
-    };
-    setClusterLogsList(l => [...l, `[${timestamps}] [WRN] ${profileLogs[mode]}`]);
-  };
-
-  // Contact form submission
+  // Contact form submission — apre il client di posta con il messaggio precompilato.
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formState.name || !formState.email || !formState.message) return;
     setIsSubmitting(true);
-    
-    // Simulate API storing the message
+
+    const subject = encodeURIComponent(`Contatto dal portfolio — ${formState.name}`);
+    const body = encodeURIComponent(
+      `Nome: ${formState.name}\nEmail: ${formState.email}\n\n${formState.message}`
+    );
+    window.location.href = `mailto:${CONTACT.email}?subject=${subject}&body=${body}`;
+
     setTimeout(() => {
       setIsSubmitting(false);
       setFormSubmitted(true);
       setFormState({ name: "", email: "", message: "" });
-    }, 1500);
+    }, 500);
   };
 
   const filteredProjects = activeTab === "all" 
@@ -485,33 +421,78 @@ export default function App() {
       {/* Modern Navigation Header matching theme */}
       <nav className="fixed top-0 left-0 w-full z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-900/80">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 h-20 flex justify-between items-center">
-          <div className="flex items-center gap-3">
+          <a href="#hero-section" className="flex items-center gap-3">
             <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center font-bold text-slate-950">AT</div>
             <div>
-              <span className="text-white font-semibold text-base tracking-tight block">Alexandro Tornese</span>
+              <span className="text-white font-semibold text-base tracking-tight block">{CONTACT.name}</span>
               <span className="text-[10px] text-cyan-400 font-mono tracking-wider block uppercase">Software Engineer</span>
             </div>
-          </div>
+          </a>
           
-          <div className="hidden md:flex gap-8 text-xs font-semibold uppercase tracking-widest text-slate-500 items-center">
-            <a href="#about-section" className="hover:text-white transition-colors cursor-pointer">Chi Sono</a>
-            <a href="#skills-section" className="hover:text-white transition-colors cursor-pointer">Competenze</a>
-            <a href="#timeline-section" className="hover:text-white transition-colors cursor-pointer">Esperienza</a>
-            <a href="#projects-section" className="text-cyan-400 border-b border-cyan-400 pb-0.5">Progetti</a>
-            <a href="#terminal-section" className="hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 font-mono">
-              <Terminal className="w-3.5 h-3.5 text-cyan-400" /> console_cv
-            </a>
+          <div className="hidden md:flex gap-6 text-xs font-semibold uppercase tracking-widest items-center">
+            {NAV_ITEMS.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                className={`transition-colors cursor-pointer ${
+                  activeSection === item.id ? "text-cyan-400" : "text-slate-500 hover:text-white"
+                }`}
+              >
+                {item.label}
+              </a>
+            ))}
           </div>
 
-          <div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <a
+              href={CONTACT.cvUrl}
+              download
+              className="hidden sm:inline-flex items-center gap-1.5 bg-white text-slate-950 hover:bg-cyan-400 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300"
+            >
+              <Download className="w-3.5 h-3.5" /> CV
+            </a>
             <a 
               href="#contact-section" 
-              className="bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-500/20 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider cursor-pointer transition-all duration-300"
+              className="bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-500/20 px-4 sm:px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider cursor-pointer transition-all duration-300"
             >
               Contatti
             </a>
+            <button
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              aria-label={mobileMenuOpen ? "Chiudi menu" : "Apri menu"}
+              aria-expanded={mobileMenuOpen}
+              className="md:hidden p-2.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:text-white cursor-pointer"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile dropdown menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-slate-900 bg-slate-950/95 backdrop-blur-md px-6 py-4 space-y-1">
+            {NAV_ITEMS.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block py-2.5 text-sm font-semibold uppercase tracking-widest ${
+                  activeSection === item.id ? "text-cyan-400" : "text-slate-400"
+                }`}
+              >
+                {item.label}
+              </a>
+            ))}
+            <a
+              href={CONTACT.cvUrl}
+              download
+              onClick={() => setMobileMenuOpen(false)}
+              className="mt-2 inline-flex items-center gap-1.5 bg-white text-slate-950 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider"
+            >
+              <Download className="w-3.5 h-3.5" /> Scarica CV
+            </a>
+          </div>
+        )}
       </nav>
 
       {/* Main Container */}
@@ -521,372 +502,161 @@ export default function App() {
         <section id="hero-section" className="py-12 lg:py-20 flex flex-col lg:flex-row gap-12 items-center justify-between">
           <div className="flex-1 space-y-6 text-center lg:text-left">
             <div className="inline-block px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs font-bold rounded-full uppercase tracking-tighter">
-              Software Engineer · AI, Backend & Distributed Systems
+              Software Engineer · AI, Backend & Sistemi Distribuiti
             </div>
-            
-            <h1 className="text-5xl sm:text-6xl font-bold text-white leading-tight">
-              Costruisco <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">architetture</span> <br />
-              digitali scalabili & eleganti.
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
+              Costruisco <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">backend, AI e infrastrutture</span> che reggono in produzione.
             </h1>
-            
+
             <p className="text-lg text-slate-400 leading-relaxed pr-0 lg:pr-10">
-              Progetto sistemi che spaziano dall'AI generativa (RAG multi-provider) al backend e all'infrastruttura distribuita, fino a soluzioni realtime e app mobile/desktop. Unisco il rigore accademico di <strong>Ingegneria Informatica</strong> (UniSalento) all'esperienza di sviluppo sul campo presso <strong>Icsone</strong>.
+              ~4 anni in <strong className="text-slate-200">Icsone</strong> tra backend, AI e DevOps. Ho contribuito a piattaforme usate da PA e aziende: <strong className="text-slate-200">3M+ prenotazioni</strong> su CePosto, un assistente AI (RAG multi-LLM) con <strong className="text-slate-200">50.000+ documenti</strong> indicizzati e deploy orchestrati su Kubernetes. Studio Ingegneria Informatica a UniSalento.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 justify-center lg:justify-start pt-2">
-              <a 
-                href="#projects-section" 
+              <a
+                href={CONTACT.cvUrl}
+                download
+                className="px-8 py-3 bg-cyan-500 text-slate-950 font-bold rounded-xl hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-400/20 transition-all flex items-center gap-2"
+              >
+                <Download className="w-4 h-4 text-slate-950" /> Scarica CV
+              </a>
+              <a
+                href="#projects-section"
                 className="px-8 py-3 bg-white text-slate-950 font-bold rounded-xl hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-400/20 transition-all flex items-center gap-2"
               >
-                Guarda canali <ArrowRight className="w-4 h-4 text-slate-950" />
+                Vedi i progetti <ArrowRight className="w-4 h-4 text-slate-950" />
               </a>
-              <a 
-                href="#terminal-section" 
-                className="px-8 py-3 bg-slate-900 border border-slate-800 text-white font-bold rounded-xl hover:border-slate-600 hover:text-cyan-400 transition-all flex items-center gap-2"
+              <a
+                href="#contact-section"
+                className="px-6 py-3 bg-slate-900 border border-slate-800 text-white font-bold rounded-xl hover:border-slate-600 hover:text-cyan-400 transition-all flex items-center gap-2"
               >
-                <Terminal className="w-4 h-4 text-cyan-400" /> console_cv
+                <Mail className="w-4 h-4 text-cyan-400" /> Contattami
               </a>
             </div>
-            
+
             {/* Quick stats panel */}
-            <div className="grid grid-cols-3 gap-6 max-w-md pt-8 mx-auto lg:mx-0 border-t border-slate-900">
+            <div className="grid grid-cols-3 gap-6 max-w-lg pt-8 mx-auto lg:mx-0 border-t border-slate-900">
               <div>
-                <p className="text-3xl font-extrabold text-white font-mono hover:text-cyan-400 transition-colors">4+</p>
-                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Anni di codice</p>
+                <p className="text-3xl font-extrabold text-white font-mono">4+</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Anni di esperienza</p>
               </div>
               <div>
-                <p className="text-3xl font-extrabold text-white font-mono hover:text-cyan-400 transition-colors">1°</p>
-                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Hackathon 2026</p>
+                <p className="text-3xl font-extrabold text-white font-mono">3M+</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Prenotazioni — CePosto</p>
               </div>
               <div>
-                <p className="text-3xl font-extrabold text-white font-mono hover:text-cyan-400 transition-colors">50k+</p>
-                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Documenti AI</p>
+                <p className="text-3xl font-extrabold text-white font-mono">50k+</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Documenti indicizzati — AI</p>
               </div>
             </div>
           </div>
 
-          {/* Core Feature: Combined Interactive Dashboard (DevOps Sandbox Control Center) */}
-          <div className="flex-1 w-full max-w-xl lg:max-w-none">
-            <div className="bg-slate-900/40 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-xl relative">
-              <div className="absolute top-0 right-0 p-8 pointer-events-none">
-                <div className="w-24 h-24 bg-cyan-500/5 rounded-full blur-3xl"></div>
+          {/* Profile snapshot card */}
+          <div className="flex-1 w-full max-w-md lg:max-w-sm mx-auto">
+            <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-6 pointer-events-none">
+                <div className="w-24 h-24 bg-cyan-500/10 rounded-full blur-3xl" />
               </div>
 
-              {/* Header with live network status */}
-              <div className="px-5 py-4 border-b border-slate-900 flex justify-between items-center bg-slate-950/60">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${
-                    trafficScale === "surge" ? "bg-amber-500" : "bg-emerald-400"
-                  }`} />
-                  <span className="text-xs font-mono font-bold text-slate-200 tracking-wider">DEV-SANDBOX: ACTIVE DEVOPS NODE</span>
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500 flex items-center justify-center font-bold text-slate-950 text-lg">AT</div>
+                <div className="space-y-0.5">
+                  <p className="text-white font-bold tracking-tight leading-tight">Alexandro Tornese</p>
+                  <p className="text-[11px] text-cyan-400 font-mono uppercase tracking-wider">Software Engineer</p>
+                  <p className="text-[10px] text-slate-500 font-mono">Salento, Puglia · Remoto</p>
                 </div>
-                <div className="text-[10px] font-mono text-cyan-400 flex items-center gap-1.5 bg-cyan-500/10 px-2.5 py-0.5 rounded border border-cyan-500/20">
-                  <Activity className="w-3 h-3 animate-pulse" /> STATUS: HEALTHY
+                <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" /> Disponibile
+                </span>
+              </div>
+
+              <div className="mt-6 space-y-3.5 relative z-10">
+                <div className="flex gap-3 items-center">
+                  <Briefcase className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-slate-500 leading-none uppercase tracking-wider">Ruolo corrente</p>
+                    <p className="text-sm text-slate-200 mt-1 font-semibold">Software Engineer presso Icsone</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-center">
+                  <GraduationCap className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-slate-500 leading-none uppercase tracking-wider">Formazione</p>
+                    <p className="text-sm text-slate-200 mt-1 font-semibold">Ingegneria Informatica (UniSalento)</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-center">
+                  <Compass className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-slate-500 leading-none uppercase tracking-wider">Focus</p>
+                    <p className="text-sm text-slate-200 mt-1 font-semibold">AI & RAG · Backend · DevOps · Realtime/IoT</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-center">
+                  <Languages className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-slate-500 leading-none uppercase tracking-wider">Lingue</p>
+                    <p className="text-sm text-slate-200 mt-1 font-semibold">Italiano (madrelingua) · Inglese (B2)</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Grid content split: Interactive controls & SVG graphics metrics */}
-              <div className="p-5 space-y-5">
-                
-                {/* Section A: Replica Instance Tuner Blocks */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-wider">Orchestratore Sandbox Repliche</p>
-                    <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border ${
-                      trafficScale === "surge"
-                        ? "text-amber-400 border-amber-500/30 bg-amber-500/10"
-                        : "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
-                    }`}>
-                      HPA: {trafficScale === "surge" ? "AUTO-SCALING" : "STABLE"}
-                    </span>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 gap-2.5">
-                    {clusterServices.map((srv) => (
-                      <div key={srv.id} className="p-3 bg-slate-950/80 rounded-xl border border-slate-850 flex items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              srv.color === "cyan" ? "bg-cyan-400" : srv.color === "indigo" ? "bg-indigo-400" : "bg-emerald-400"
-                            }`} />
-                            <span className="text-[10px] font-mono text-slate-400">/{srv.name}</span>
-                          </div>
-                          <span className="text-xs font-bold text-white block leading-tight">{srv.label}</span>
-                        </div>
-
-                        {/* Interactive Scale Controls */}
-                        <div className="flex items-center gap-3">
-                          {/* Live Container instance dot badges */}
-                          <div className="flex gap-1 items-center shrink-0 mr-1.5">
-                            {Array.from({ length: srv.max }).map((_, bIdx) => {
-                              const isActiveInstance = bIdx < srv.replicas;
-                              return (
-                                <span 
-                                  key={bIdx} 
-                                  className={`w-2 h-2 rounded-full transition-all duration-350 ${
-                                    isActiveInstance
-                                      ? srv.color === "cyan" ? "bg-cyan-400 animate-pulse" : srv.color === "indigo" ? "bg-indigo-400 animate-pulse" : "bg-emerald-400"
-                                      : "bg-slate-800"
-                                  }`}
-                                />
-                              );
-                            })}
-                          </div>
-
-                          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 shrink-0">
-                            <button
-                              onClick={() => scaleService(srv.id, "down")}
-                              disabled={srv.replicas <= 1}
-                              className="p-1 px-1.5 hover:bg-slate-850 rounded text-slate-400 hover:text-white disabled:opacity-30 cursor-pointer text-xs"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="text-xs font-mono font-bold px-2 text-white shrink-0 min-w-[14px] text-center">
-                              {srv.replicas}
-                            </span>
-                            <button
-                              onClick={() => scaleService(srv.id, "up")}
-                              disabled={srv.replicas >= srv.max}
-                              className="p-1 px-1.5 hover:bg-slate-850 rounded text-slate-400 hover:text-white disabled:opacity-30 cursor-pointer text-xs"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Section B: Traffic wave scale toggle controllers & Dynamic SVG performance metrics */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Traffic Modes Selector */}
-                  <div className="space-y-2">
-                    <p className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-wider">Simulatore Carico Traffico</p>
-                    <div className="bg-slate-950/80 p-3.5 rounded-xl border border-slate-850 h-[115px] flex flex-col justify-between">
-                      <div className="text-[10px] text-slate-400 leading-relaxed font-mono">
-                        Seleziona un profilo d'utenza per scatenare richieste artificiali al cluster:
-                      </div>
-                      <div className="grid grid-cols-3 gap-1">
-                        {(["idle", "normal", "surge"] as const).map((m) => (
-                          <button
-                            key={m}
-                            onClick={() => setTrafficProfile(m)}
-                            className={`p-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider border cursor-pointer transition-all ${
-                              trafficScale === m
-                                ? m === "surge"
-                                  ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                                  : m === "idle"
-                                    ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
-                                    : "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
-                                : "bg-slate-900 text-slate-500 border-slate-800 hover:text-slate-350"
-                            }`}
-                          >
-                            {m}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SVG Chart Rendering area */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-wider">Cluster Workload (%)</span>
-                      <span className="text-[10px] text-cyan-400 font-mono font-bold">
-                        Avg: {Math.round(customChartHistory.reduce((a, b) => a + b, 0) / customChartHistory.length)}%
-                      </span>
-                    </div>
-
-                    <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-850 h-[115px] relative overflow-hidden flex flex-col justify-between">
-                      {/* Interactive responsive SVG coordinates graph */}
-                      <div className="w-full h-16 relative">
-                        <svg className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                          <defs>
-                            <linearGradient id="svgGradientGlow" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.25" />
-                              <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
-                            </linearGradient>
-                          </defs>
-
-                          {/* Grid background lines */}
-                          <line x1="0%" y1="25%" x2="100%" y2="25%" stroke="#1e293b" strokeDasharray="2,3" strokeWidth="1" />
-                          <line x1="0%" y1="50%" x2="100%" y2="50%" stroke="#1e293b" strokeDasharray="2,3" strokeWidth="1" />
-                          <line x1="0%" y1="75%" x2="100%" y2="75%" stroke="#1e293b" strokeDasharray="2,3" strokeWidth="1" />
-
-                          {/* Render Filled Area under the curve */}
-                          <path
-                            d={`
-                              M 0,64
-                              ${customChartHistory.map((val, idx) => {
-                                const x = (idx / 7) * 100; // distribute on width
-                                const y = 64 - (val / 100) * 58; // scale with reserve margin
-                                return `L ${x}%,${y}`;
-                              }).join(" ")}
-                              L 100%,64 Z
-                            `}
-                            fill="url(#svgGradientGlow)"
-                          />
-
-                          {/* Render main curve line */}
-                          <path
-                            d={customChartHistory.map((val, idx) => {
-                              const x = (idx / 7) * 100;
-                              const y = 64 - (val / 100) * 58;
-                              return `${idx === 0 ? "M" : "L"} ${x}%,${y}`;
-                            }).join(" ")}
-                            fill="none"
-                            stroke="#22d3ee"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                            className="transition-all duration-500 ease-in-out"
-                          />
-
-                          {/* Current data points node flashes */}
-                          {customChartHistory.map((val, idx) => {
-                            const x = `${(idx / 7) * 100}%`;
-                            const y = 64 - (val / 100) * 58;
-                            return (
-                              <circle
-                                key={idx}
-                                cx={x}
-                                cy={y}
-                                r="2.5"
-                                className={`${idx === 7 ? "fill-cyan-400 r-4 stroke-slate-900 stroke-2" : "fill-cyan-500/80"}`}
-                              />
-                            );
-                          })}
-                        </svg>
-                      </div>
-
-                      {/* Sparkline Axis values labels */}
-                      <div className="flex justify-between items-center font-mono text-[9px] text-slate-600 border-t border-slate-900 pt-1">
-                        <span>T-24s</span>
-                        <span>T-16s</span>
-                        <span>T-8s</span>
-                        <span className="text-cyan-400/85">NOW: {customChartHistory[7]}%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section C: Live Diagnostics rolling terminal logs */}
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-wider block">Live Node Diagnostics Logging</span>
-                  <div 
-                    ref={devopsLogsRef}
-                    className="bg-slate-950 border border-slate-900 rounded-xl p-3 h-28 overflow-y-auto font-mono text-[10px] leading-relaxed text-slate-400 space-y-1 scrollbar-thin scrollbar-thumb-slate-800"
-                  >
-                    {clusterLogsList.map((log, idx) => {
-                      const isWarn = log.includes("[WRN]");
-                      return (
-                        <div key={idx} className="flex gap-1.5 items-start">
-                          <span className="text-cyan-500 shrink-0 select-none">❯</span>
-                          <span className={isWarn ? "text-amber-400 font-medium" : "text-slate-300"}>
-                            {log}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
+              <div className="mt-6 pt-5 border-t border-slate-800/70 flex items-center gap-3 relative z-10">
+                <a href={`mailto:${CONTACT.email}`} aria-label="Email" className="w-10 h-10 rounded-full bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:text-cyan-400 flex items-center justify-center text-slate-300 transition-colors">
+                  <Mail className="w-4 h-4" />
+                </a>
+                <a href={CONTACT.github} target="_blank" rel="noreferrer" aria-label="GitHub" className="w-10 h-10 rounded-full bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:text-cyan-400 flex items-center justify-center text-slate-300 transition-colors">
+                  <Github className="w-4 h-4" />
+                </a>
+                <a href={CONTACT.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn" className="w-10 h-10 rounded-full bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:text-cyan-400 flex items-center justify-center text-slate-300 transition-colors">
+                  <Linkedin className="w-4 h-4" />
+                </a>
+                <a href={CONTACT.cvUrl} download className="ml-auto inline-flex items-center gap-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-cyan-400 px-4 h-10 rounded-full text-xs font-bold uppercase tracking-wider transition-colors">
+                  CV <Download className="w-3.5 h-3.5" />
+                </a>
               </div>
             </div>
           </div>
         </section>
 
         {/* BIO / CHI SONO */}
-        <section id="about-section" className="py-16 border-t border-slate-900/60">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
-            {/* Visual illustration of Alexandro's tech node concept */}
-            <div className="lg:col-span-12 xl:col-span-5 order-2 lg:order-1 relative">
-              <div className="aspect-square max-w-sm mx-auto bg-slate-900/40 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between relative shadow-xl overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 pointer-events-none">
-                  <div className="w-24 h-24 bg-cyan-500/10 rounded-full blur-3xl" />
-                </div>
-                
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-cyan-400 font-mono tracking-widest block uppercase">Developer Identity</span>
-                    <h4 className="text-xl font-bold text-white tracking-tight">Alexandro Tornese</h4>
-                  </div>
-                  <span className="text-xs bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2.5 py-1 rounded-md font-mono">Est. 2023</span>
-                </div>
+        <section id="about-section" className="py-16 border-t border-slate-900/60 space-y-8">
+          <div className="text-center space-y-2 max-w-2xl mx-auto">
+            <span className="text-xs text-cyan-400 font-mono tracking-widest uppercase">Chi sono</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">Software Engineer con una specializzazione sull'AI.</h2>
+          </div>
 
-                {/* Structured mock details */}
-                <div className="space-y-4 py-8">
-                  <div className="flex gap-3 items-center">
-                    <Briefcase className="w-4 h-4 text-cyan-400" />
-                    <div>
-                      <p className="text-xs text-slate-500 leading-none uppercase tracking-wider">Ruolo Corrente</p>
-                      <p className="text-sm text-slate-200 mt-1 font-semibold">Software Engineer presso Icsone</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <GraduationCap className="w-4 h-4 text-cyan-400" />
-                    <div>
-                      <p className="text-xs text-slate-500 leading-none uppercase tracking-wider">Formazione</p>
-                      <p className="text-sm text-slate-200 mt-1 font-semibold">Ingegneria Informatica (UniSalento)</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <Compass className="w-4 h-4 text-cyan-400" />
-                    <div>
-                      <p className="text-xs text-slate-500 leading-none uppercase tracking-wider">Focus Chiave</p>
-                      <p className="text-sm text-slate-200 mt-1 font-semibold">AI & RAG, Backend distribuiti, Realtime/IoT</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="max-w-3xl mx-auto space-y-6">
+            <p className="text-slate-400 leading-relaxed text-sm sm:text-base">
+              Lavoro in <strong className="text-slate-200">Icsone</strong> sull'intero ciclo del software: backend, AI, infrastruttura containerizzata e sistemi realtime/IoT. Unisco la pratica quotidiana sul campo alle basi di <strong className="text-slate-200">Ingegneria Informatica</strong> (UniSalento), con l'obiettivo di costruire soluzioni che reggano davvero in produzione.
+            </p>
 
-                {/* Simulated signature string */}
-                <div className="border-t border-slate-800/80 pt-4 flex justify-between items-center text-[10px] font-mono text-slate-500">
-                  <span>NODE: ICS_SALENTO</span>
-                  <span>STATUS: ACTIVE</span>
-                </div>
+            <ul className="space-y-2.5 text-slate-400 text-sm sm:text-base">
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+                <span>Infrastruttura containerizzata (Docker, Nginx, k3s) e aggiornamenti a <strong className="text-slate-200">zero downtime</strong>.</span>
+              </li>
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+                <span>Cuore AI aziendale: microservizi <strong className="text-slate-200">RAG multi-LLM</strong> con ricerca ibrida vettoriale/BM25.</span>
+              </li>
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+                <span>Applicativi realtime/IoT (MQTT), app mobile (Ionic) e desktop (Electron).</span>
+              </li>
+            </ul>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="p-5 bg-slate-900/40 border border-slate-800 rounded-2xl">
+                <h5 className="font-semibold text-slate-100 text-sm">Pragmatismo &amp; teoria</h5>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">Basi scientifiche e metodo per affrontare problemi e bug complessi.</p>
+              </div>
+              <div className="p-5 bg-slate-900/40 border border-slate-800 rounded-2xl">
+                <h5 className="font-semibold text-slate-100 text-sm">Automazione al centro</h5>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">Meno operazioni manuali ripetitive, più script e workflow affidabili.</p>
               </div>
             </div>
-
-            {/* Structured textual content */}
-            <div className="lg:col-span-12 xl:col-span-7 order-1 lg:order-2 space-y-6">
-              <div className="space-y-2">
-                <span className="text-xs text-cyan-400 font-mono tracking-widest uppercase">Chi sono</span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">Sviluppo con Metodo, Innovo con Precisione.</h2>
-              </div>
-              
-              <div className="space-y-4 text-slate-400 leading-relaxed text-sm sm:text-base">
-                <p>
-                  Con circa quattro anni di esperienza lavorativa continuativa nell'IT, ho lavorato trasversalmente sull'intero ciclo del software: dall'architettura AI e backend all'infrastruttura containerizzata, fino a sistemi realtime/IoT e applicazioni mobile e desktop. Questo spettro ampio mi ha educato a concepire soluzioni che non si limitino a funzionare in locale, ma che risultino scalabili, resilienti ed efficienti una volta distribuite in produzione.
-                </p>
-                <p>
-                  Attualmente affronto la sfida quotidiana di coordinare il mio lavoro full-time come developer presso <strong>Icsone</strong> con il superamento accademico del corso di laurea in <strong>Ingegneria Informatica</strong> all'Università del Salento. Questa intersezione continua mi consente di applicare l'algebra lineare e le strutture dati direttamente all'interno delle pipeline Docker, delle interrogazioni MariaDB e degli agenti intelligenti.
-                </p>
-                <p>
-                  Sono convinto che il vero progresso sia guidato dalla condivisione dei saperi e dal rispetto degli standard metodologici. Il mio approccio al lavoro di squadra si traduce in una documentazione meticolosa, in test rigorosi e nella costante semplificazione delle architetture inutilmente complesse.
-                </p>
-              </div>
-              
-              {/* Values grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-xl flex gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
-                  <div>
-                    <h5 className="font-semibold text-slate-100 text-sm">Pragmatismo & Teoria</h5>
-                    <p className="text-xs text-slate-400 mt-1 font-normal">Nessun compromesso: basi scientifiche per affrontare bug complessi.</p>
-                  </div>
-                </div>
-                <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-xl flex gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
-                  <div>
-                    <h5 className="font-semibold text-slate-100 text-sm">Automazione al Centro</h5>
-                    <p className="text-xs text-slate-400 mt-1 font-normal">Azzerare le operazioni manuali ripetitive con script e workflow n8n robusti.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
           </div>
         </section>
 
@@ -895,56 +665,36 @@ export default function App() {
           <div className="text-center space-y-2 max-w-xl mx-auto">
             <span className="text-xs text-cyan-400 font-mono tracking-widest uppercase">Competenze</span>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-sans">Il Mio Tech Stack Operativo</h2>
-            <p className="text-slate-400 text-sm">Tecnologie studiate e applicate quotidianamente in contesti aziendali reali e infrastrutture complesse.</p>
+            <p className="text-slate-400 text-sm">Tecnologie che uso in contesti aziendali reali, dal backend all'AI, fino a infrastruttura e sistemi realtime.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {SKILLS_DATA.map((group, idx) => (
-              <div 
-                key={idx} 
-                className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 hover:border-slate-700 transition-all flex flex-col justify-between"
+              <div
+                key={idx}
+                className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 hover:border-slate-700 transition-all"
               >
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 bg-slate-950 border border-slate-800/80 rounded-xl flex items-center justify-center text-cyan-400">
-                      {group.iconName === "server" && <Server className="w-5 h-5" />}
-                      {group.iconName === "layout" && <Layout className="w-5 h-5" />}
-                      {group.iconName === "terminal" && <Terminal className="w-5 h-5" />}
-                      {group.iconName === "cpu" && <Cpu className="w-5 h-5" />}
-                      {group.iconName === "radio" && <Radio className="w-5 h-5" />}
-                    </span>
-                    <div>
-                      <h4 className="font-bold text-white text-base tracking-tight">{group.category}</h4>
-                      <p className="text-[10px] text-slate-500 font-mono tracking-widest mt-0.5">CATEGORY_0{idx + 1}</p>
-                    </div>
-                  </div>
-
-                  <p className="text-slate-400 text-xs sm:text-[13px] leading-relaxed">
-                    {group.description}
-                  </p>
-
-                  <div className="space-y-3.5 pt-4 border-t border-slate-900">
-                    {group.skills.map((skill, sIdx) => (
-                      <div key={sIdx} className="space-y-1.5">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className={`font-medium ${skill.isCore ? "text-slate-200" : "text-slate-400"}`}>
-                            {skill.name} {skill.isCore && <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-1 rounded font-semibold">Core</span>}
-                          </span>
-                          <span className="font-mono text-[10px] text-slate-500">{skill.level}%</span>
-                        </div>
-                        <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden">
-                          <div 
-                            className="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full" 
-                            style={{ width: `${skill.level}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="flex items-center gap-3">
+                  <span className="w-10 h-10 bg-slate-950 border border-slate-800/80 rounded-xl flex items-center justify-center text-cyan-400">
+                    {group.iconName === "server" && <Server className="w-5 h-5" />}
+                    {group.iconName === "layout" && <Layout className="w-5 h-5" />}
+                    {group.iconName === "terminal" && <Terminal className="w-5 h-5" />}
+                    {group.iconName === "cpu" && <Cpu className="w-5 h-5" />}
+                    {group.iconName === "radio" && <Radio className="w-5 h-5" />}
+                  </span>
+                  <h4 className="font-bold text-white text-base tracking-tight">{group.category}</h4>
                 </div>
 
-                <div className="text-[10px] text-slate-600 font-mono mt-6 text-right">
-                  AT_NODE_SYNC // OK
+                <p className="text-slate-400 text-xs sm:text-[13px] leading-relaxed mt-4">
+                  {group.description}
+                </p>
+
+                <div className="flex flex-wrap gap-1.5 pt-4 mt-4 border-t border-slate-900">
+                  {group.skills.map((skill, sIdx) => (
+                    <span key={sIdx} className="text-[11px] bg-slate-950 border border-slate-800 text-slate-300 px-2.5 py-1 rounded-md font-mono">
+                      {skill.name}
+                    </span>
+                  ))}
                 </div>
               </div>
             ))}
@@ -1018,8 +768,8 @@ export default function App() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 max-w-4xl mx-auto">
             <div className="space-y-2">
               <span className="text-xs text-cyan-400 font-mono tracking-widest uppercase">Progetti in evidenza</span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-sans m-0">Sviluppo ad Alto Impatto</h2>
-              <p className="text-slate-400 text-sm">Architetture reali ed ingegneriose, create per ottimizzare le automazioni aziendali o vincere hackathon nazionali.</p>
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-sans m-0">Progetti su cui ho lavorato</h2>
+              <p className="text-slate-400 text-sm">Piattaforme aziendali e sistemi reali, dalle prenotazioni per la PA all'AI generativa, fino a infrastruttura e applicazioni mobile/desktop.</p>
             </div>
             
             {/* Project Category tabs */}
@@ -1027,7 +777,7 @@ export default function App() {
               <button 
                 onClick={() => setActiveTab("all")}
                 className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                  activeTab === "all" ? "bg-cyan-505 bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
+                  activeTab === "all" ? "bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
                 }`}
               >
                 Tutti
@@ -1035,7 +785,7 @@ export default function App() {
               <button 
                 onClick={() => setActiveTab("ai")}
                 className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                  activeTab === "ai" ? "bg-cyan-505 bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
+                  activeTab === "ai" ? "bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
                 }`}
               >
                 AI & Data
@@ -1043,7 +793,7 @@ export default function App() {
               <button 
                 onClick={() => setActiveTab("devops")}
                 className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                  activeTab === "devops" ? "bg-cyan-505 bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
+                  activeTab === "devops" ? "bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
                 }`}
               >
                 DevOps & Infra
@@ -1051,7 +801,7 @@ export default function App() {
               <button 
                 onClick={() => setActiveTab("web")}
                 className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                  activeTab === "web" ? "bg-cyan-505 bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
+                  activeTab === "web" ? "bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
                 }`}
               >
                 Web & Realtime
@@ -1059,7 +809,7 @@ export default function App() {
               <button 
                 onClick={() => setActiveTab("mobile")}
                 className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                  activeTab === "mobile" ? "bg-cyan-505 bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
+                  activeTab === "mobile" ? "bg-white text-slate-950 shadow-md shadow-white/10" : "text-slate-400 hover:text-white"
                 }`}
               >
                 Mobile
@@ -1077,7 +827,7 @@ export default function App() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.25 }}
                   key={project.id} 
-                  className="bg-gradient-to-br from-slate-900 to-slate-805 border border-slate-800 rounded-3xl overflow-hidden hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-400/5 transition-all flex flex-col justify-between group relative"
+                  className="bg-gradient-to-br from-slate-900 to-slate-900 border border-slate-800 rounded-3xl overflow-hidden hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-400/5 transition-all flex flex-col justify-between group relative"
                 >
                   <div className="absolute top-0 right-0 p-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="w-16 h-16 bg-cyan-500/10 rounded-full blur-2xl"></div>
@@ -1086,7 +836,7 @@ export default function App() {
                   <div className="p-6 space-y-4 relative z-10">
                     {/* Visual header with colored bar context */}
                     <div className="flex justify-between items-start">
-                      <span className="text-[10px] bg-cyan-550/10 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 rounded-md font-mono tracking-widest font-semibold capitalize text-cyan-400">
+                      <span className="text-[10px] bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 rounded-md font-mono tracking-widest font-semibold capitalize text-cyan-400">
                         {categoryLabels[project.category]}
                       </span>
                       <span className="text-slate-600 text-[10px] font-mono">PROJECT_{project.id.substring(0,3).toUpperCase()}</span>
@@ -1101,7 +851,7 @@ export default function App() {
                     {/* Numeric key indicators metric row */}
                     {project.metrics && project.metrics.length > 0 && (
                       <div
-                        className="grid gap-2 bg-slate-950/40 p-3 rounded-xl border border-slate-850"
+                        className="grid gap-2 bg-slate-950/40 p-3 rounded-xl border border-slate-800"
                         style={{ gridTemplateColumns: `repeat(${project.metrics.length}, minmax(0, 1fr))` }}
                       >
                         {project.metrics.map((met, mIdx) => (
@@ -1115,17 +865,33 @@ export default function App() {
                     
                     <div className="flex flex-wrap gap-1.5 pt-2">
                       {project.tags.map((tag) => (
-                        <span key={tag} className="text-[10px] bg-slate-800 text-slate-350 px-2 py-0.5 rounded font-mono">
+                        <span key={tag} className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
                           {tag}
                         </span>
                       ))}
                     </div>
+
+                    {project.links && project.links.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {project.links.map((link) => (
+                          <a
+                            key={link.url}
+                            href={link.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 rounded-lg transition-colors"
+                          >
+                            <ExternalLink className="w-3 h-3" /> {link.label}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-4 bg-slate-950/40 border-t border-slate-900 flex justify-between items-center sm:px-6 relative z-10">
                     <button 
                       onClick={() => setSelectedProject(project)}
-                      className="text-xs text-cyan-400 hover:text-cyan-350 font-bold tracking-wide flex items-center gap-1 cursor-pointer transition-colors"
+                      className="text-xs text-cyan-400 hover:text-cyan-400 font-bold tracking-wide flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       Dettagli tecnici <ChevronRight className="w-4 h-4 text-cyan-400" />
                     </button>
@@ -1137,235 +903,266 @@ export default function App() {
               ))}
             </AnimatePresence>
           </div>
+
+          <p className="text-center text-[11px] text-slate-500 font-mono max-w-4xl mx-auto">
+            * Metriche e risultati si riferiscono alle piattaforme aziendali su cui ho contribuito in team.
+          </p>
         </section>
 
-        {/* FULLY INTERACTIVE COMMAND LINE DEVELOPER TERMINAL */}
-        <section id="terminal-section" className="py-16 border-t border-slate-900/60 max-w-4xl mx-auto space-y-6">
-          <div className="text-center space-y-2">
-            <span className="text-xs text-cyan-400 font-mono tracking-widest uppercase">Terminal Console</span>
-            <h2 className="text-3xl font-extrabold tracking-tight text-white mb-2">Retro Developer Console</h2>
-            <p className="text-slate-400 text-sm max-w-xl mx-auto">Se preferisci riga di comando per consultare le mie competenze, ho sviluppato un emulatore terminale apposta per te.</p>
+        {/* COME LAVORO — DEMO INTERATTIVE */}
+        <section id="how-section" className="py-16 border-t border-slate-900/60 space-y-12">
+          <div className="text-center space-y-2 max-w-2xl mx-auto">
+            <span className="text-xs text-cyan-400 font-mono tracking-widest uppercase">Come lavoro</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">Infrastruttura, automazioni e console — dal vivo</h2>
+            <p className="text-slate-400 text-sm">
+              Tre demo interattive che mostrano come lavoro sul campo: scaling di un cluster containerizzato, workflow automatizzati e una console per esplorare il CV.
+              <span className="text-slate-500"> Simulazioni a scopo dimostrativo.</span>
+            </p>
           </div>
 
-          <div className={`border rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${currentTerminalClass.bg}`}>
-            
-            {/* OS Styled Window Header */}
-            <div className={`px-4 py-3 border-b flex justify-between items-center ${currentTerminalClass.headerBg}`}>
-              <div className="flex gap-2">
-                <span className={`w-3 h-3 rounded-full ${currentTerminalClass.dots}`} />
-                <span className={`w-3 h-3 rounded-full ${currentTerminalClass.dots}`} />
-                <span className={`w-3 h-3 rounded-full ${currentTerminalClass.dots}`} />
-              </div>
-              <span className="text-xs font-mono font-bold flex items-center gap-1">
-                <Command className="w-3 h-3 text-cyan-400 animate-pulse" /> alexandro@unisalento-icsone-node:~
-              </span>
-              <div className="flex gap-2">
-                <button onClick={() => setTerminalTheme("dark")} className={`px-1.5 py-0.5 text-[9px] rounded border font-mono ${terminalTheme === "dark" ? "bg-zinc-800 text-white border-zinc-700" : "text-zinc-500 border-transparent"}`}>dark</button>
-                <button onClick={() => setTerminalTheme("matrix")} className={`px-1.5 py-0.5 text-[9px] rounded border font-mono ${terminalTheme === "matrix" ? "bg-green-950 text-green-300 border-green-800" : "text-green-600 border-transparent"}`}>matrix</button>
-                <button onClick={() => setTerminalTheme("nord")} className={`px-1.5 py-0.5 text-[9px] rounded border font-mono ${terminalTheme === "nord" ? "bg-slate-800 text-sky-200 border-slate-700" : "text-slate-500 border-transparent"}`}>nord</button>
-              </div>
+          {/* 01 — Infrastruttura containerizzata */}
+          <div className="max-w-4xl mx-auto space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded">01</span>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Infrastruttura containerizzata</h3>
             </div>
+            <p className="text-slate-400 text-sm">
+              Un ecosistema multi-dominio dietro reverse proxy Nginx con autoscaling delle repliche in base al carico. Regola repliche e profilo di traffico.
+            </p>
+            <DevOpsSandbox />
+          </div>
 
-            {/* Terminal Body */}
-            <div className={`p-5 h-80 overflow-y-auto leading-relaxed select-text space-y-4 ${currentTerminalClass.text}`}>
-              {terminalHistory.map((item, index) => (
-                <div key={index} className="space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className={currentTerminalClass.prompt}>{item.dir} $</span>
-                    <span className="text-white font-medium">{item.input}</span>
-                    <span className="text-[10px] text-zinc-600 ml-auto font-mono">{item.timestamp}</span>
+          {/* 02 — Automazioni & pipeline */}
+          <div className="max-w-4xl mx-auto space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded">02</span>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Automazioni &amp; pipeline</h3>
+            </div>
+            <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 pointer-events-none">
+                <div className="w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl"></div>
+              </div>
+
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 pb-4 border-b border-slate-800/60">
+                <div className="flex items-start gap-4">
+                  <span className="p-3 bg-cyan-500/10 text-cyan-400 rounded-2xl border border-cyan-500/20 shadow-inner">
+                    <Cpu className="w-6 h-6 animate-pulse" />
+                  </span>
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] text-cyan-400 font-mono tracking-widest block font-bold uppercase">Sandbox DevOps</span>
+                    <h3 className="text-2xl font-bold text-white tracking-tight">Simulatore Interattivo di Automazioni</h3>
+                    <p className="text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed">
+                      Esegui i workflow reali su cui lavoro ordinariamente: la pipeline AI del progetto Geppo, il deploy Kubernetes via CI/CD e l'auto-branching Git di ToDo.
+                    </p>
                   </div>
-                  <pre className="whitespace-pre-wrap font-mono text-xs text-slate-300 pl-4 border-l border-indigo-950/50 py-0.5">
-                    {item.output}
-                  </pre>
                 </div>
-              ))}
-              <div ref={terminalBottomRef} />
-            </div>
-
-            {/* Terminal Input Form */}
-            <form onSubmit={handleTerminalSubmit} className="p-3 border-t border-slate-900 bg-black/40 flex items-center gap-2">
-              <span className={`pl-2 font-mono ${currentTerminalClass.prompt}`}>~ $</span>
-              <input 
-                type="text"
-                value={terminalInput}
-                onChange={(e) => setTerminalInput(e.target.value)}
-                placeholder="Digita 'help' o esplora i comandi come 'skills', 'about', 'mcp'..."
-                className={`flex-1 ${currentTerminalClass.inputBg} focus:ring-0 focus:outline-none`}
-                autoFocus={false}
-              />
-              <button 
-                type="submit"
-                className="px-4 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-500/20 text-xs font-mono font-bold transition-all cursor-pointer"
-              >
-                Invia
-              </button>
-            </form>
-          </div>
-        </section>
-
-        {/* MODEL CONTEXT PROTOCOL & AUTOMATION WORKFLOW INTERACTIVE SIMULATOR */}
-        <section className="py-12 bg-slate-900/40 border border-slate-800 rounded-3xl max-w-4xl mx-auto p-6 sm:p-8 space-y-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 pointer-events-none">
-            <div className="w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl"></div>
-          </div>
-          
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 pb-4 border-b border-slate-800/60">
-            <div className="flex items-start gap-4">
-              <span className="p-3 bg-cyan-500/10 text-cyan-400 rounded-2xl border border-cyan-500/20 shadow-inner">
-                <Cpu className="w-6 h-6 animate-pulse" />
-              </span>
-              <div className="space-y-1.5">
-                <span className="text-[10px] text-cyan-400 font-mono tracking-widest block font-bold uppercase">Sandbox DevOps</span>
-                <h3 className="text-2xl font-bold text-white tracking-tight">Simulatore Interattivo di Automazioni</h3>
-                <p className="text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed">
-                  Esegui i workflow reali su cui lavoro ordinariamente: la pipeline AI del progetto Geppo, il deploy Kubernetes via CI/CD e l'auto-branching Git di ToDo.
-                </p>
               </div>
-            </div>
-          </div>
 
-          {/* Workflow Selectors */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 relative z-10">
-            {(Object.keys(RECIPES_DATA) as Array<keyof typeof RECIPES_DATA>).map((recipeKey) => {
-              const active = selectedRecipe === recipeKey;
-              return (
-                <button
-                  key={recipeKey}
-                  onClick={() => {
-                    if (!pipelineRunning) {
-                      setSelectedRecipe(recipeKey);
-                      setPipelineStep(-1);
-                      setPipelineLogs([]);
-                    }
-                  }}
-                  disabled={pipelineRunning}
-                  className={`p-4 rounded-xl text-left border transition-all cursor-pointer ${
-                    active 
-                      ? "bg-cyan-500/10 border-cyan-500/40 shadow-md shadow-cyan-500/5 text-white" 
-                      : "bg-slate-950/60 border-slate-850 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900/40"
-                  } ${pipelineRunning ? "opacity-60 cursor-not-allowed" : ""}`}
-                >
-                  <p className="text-xs font-bold font-mono text-cyan-400 mb-1 uppercase tracking-wider">
-                    {recipeKey === "ai-triage" ? "🧠 GEPPO AI" : recipeKey === "k8s-deploy" ? "☸️ K8S DEPLOY" : "🛠️ TODO SYSTEM"}
-                  </p>
-                  <p className="text-xs font-bold truncate">{RECIPES_DATA[recipeKey].title}</p>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Connected Flowchart Graph nodes */}
-          <div className="p-6 bg-slate-950/40 rounded-2xl border border-slate-850 relative z-10 space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6 md:gap-4 font-mono text-xs text-center">
-              {RECIPES_DATA[selectedRecipe].nodes.map((node, nIdx) => {
-                const isActive = pipelineStep === nIdx;
-                const isCompleted = pipelineStep > nIdx || (pipelineStep === -1 && pipelineLogs.length > 2);
-                
-                return (
-                  <React.Fragment key={node.id}>
-                    {/* Visual Node */}
-                    <div 
-                      className={`flex flex-col items-center p-4 rounded-xl border w-full max-w-[170px] transition-all duration-350 bg-slate-900/90 relative ${
-                        isActive 
-                          ? "border-cyan-400/80 shadow-lg shadow-cyan-400/10 ring-1 ring-cyan-400/20 scale-105" 
-                          : isCompleted 
-                            ? "border-emerald-500/40 text-slate-300"
-                            : "border-slate-800 text-slate-500"
-                      }`}
+              {/* Workflow Selectors */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 relative z-10">
+                {(Object.keys(RECIPES_DATA) as Array<keyof typeof RECIPES_DATA>).map((recipeKey) => {
+                  const active = selectedRecipe === recipeKey;
+                  return (
+                    <button
+                      key={recipeKey}
+                      onClick={() => {
+                        if (!pipelineRunning) {
+                          setSelectedRecipe(recipeKey);
+                          setPipelineStep(-1);
+                          setPipelineLogs([]);
+                        }
+                      }}
+                      disabled={pipelineRunning}
+                      className={`p-4 rounded-xl text-left border transition-all cursor-pointer ${
+                        active
+                          ? "bg-cyan-500/10 border-cyan-500/40 shadow-md shadow-cyan-500/5 text-white"
+                          : "bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900/40"
+                      } ${pipelineRunning ? "opacity-60 cursor-not-allowed" : ""}`}
                     >
-                      {/* Active green/blue indicators */}
-                      {isActive && (
-                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-cyan-400 rounded-full animate-ping" />
-                      )}
-                      
-                      <span className={`p-1.5 rounded-lg mb-2 ${
-                        isActive 
-                          ? "bg-cyan-500/20 text-cyan-400" 
-                          : isCompleted 
-                            ? "bg-emerald-500/10 text-emerald-400" 
-                            : "bg-slate-950 text-slate-650"
-                      }`}>
-                        {nIdx === 0 && <Activity className="w-4 h-4" />}
-                        {nIdx === 1 && <Database className="w-4 h-4" />}
-                        {nIdx === 2 && <Cpu className="w-4 h-4" />}
-                        {nIdx === 3 && <GitBranch className="w-4 h-4" />}
-                      </span>
-
-                      <span className="font-bold text-[10px] uppercase block tracking-wider leading-none mb-1 text-white">
-                        {node?.label}
-                      </span>
-                      <span className="text-[9px] text-slate-500 block leading-tight">
-                        {node?.desc}
-                      </span>
-                    </div>
-
-                    {/* Connecting Chevron Arrow */}
-                    {nIdx < 3 && (
-                      <div className={`hidden md:block transition-all duration-300 ${
-                        isActive
-                          ? "text-cyan-400 scale-125 animate-pulse"
-                          : isCompleted
-                            ? "text-emerald-500"
-                            : "text-slate-800"
-                      }`}>
-                        <ChevronRight className="w-5 h-5" />
-                      </div>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </div>
-
-            {/* Run Button and details description */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-900">
-              <div className="text-slate-450 text-slate-400 text-xs max-w-md">
-                <span className="text-cyan-400 font-bold">Concept: </span> 
-                {RECIPES_DATA[selectedRecipe].description}
+                      <p className="text-xs font-bold font-mono text-cyan-400 mb-1 uppercase tracking-wider">
+                        {recipeKey === "ai-triage" ? "🧠 GEPPO AI" : recipeKey === "k8s-deploy" ? "☸️ K8S DEPLOY" : "🛠️ TODO SYSTEM"}
+                      </p>
+                      <p className="text-xs font-bold truncate">{RECIPES_DATA[recipeKey].title}</p>
+                    </button>
+                  );
+                })}
               </div>
-              
-              <button
-                onClick={handleRunPipeline}
-                disabled={pipelineRunning}
-                className={`px-5 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-2 cursor-pointer border ${
-                  pipelineRunning
-                    ? "bg-cyan-500/5 text-cyan-300/60 border-cyan-500/10 animate-pulse cursor-not-allowed"
-                    : "bg-cyan-500/15 text-cyan-400 border-cyan-500/20 hover:bg-cyan-500 hover:text-slate-950 hover:border-cyan-400"
-                }`}
-              >
-                {pipelineRunning ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    In esecuzione...
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3.5 h-3.5" />
-                    Esegui Pipeline
-                  </>
-                )}
-              </button>
+
+              {/* Connected Flowchart Graph nodes */}
+              <div className="p-6 bg-slate-950/40 rounded-2xl border border-slate-800 relative z-10 space-y-6">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6 md:gap-4 font-mono text-xs text-center">
+                  {RECIPES_DATA[selectedRecipe].nodes.map((node, nIdx) => {
+                    const isActive = pipelineStep === nIdx;
+                    const isCompleted = pipelineStep > nIdx || (pipelineStep === -1 && pipelineLogs.length > 2);
+
+                    return (
+                      <React.Fragment key={node.id}>
+                        <div
+                          className={`flex flex-col items-center p-4 rounded-xl border w-full max-w-[170px] transition-all duration-300 bg-slate-900/90 relative ${
+                            isActive
+                              ? "border-cyan-400/80 shadow-lg shadow-cyan-400/10 ring-1 ring-cyan-400/20 scale-105"
+                              : isCompleted
+                                ? "border-emerald-500/40 text-slate-300"
+                                : "border-slate-800 text-slate-500"
+                          }`}
+                        >
+                          {isActive && (
+                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-cyan-400 rounded-full animate-ping" />
+                          )}
+
+                          <span className={`p-1.5 rounded-lg mb-2 ${
+                            isActive
+                              ? "bg-cyan-500/20 text-cyan-400"
+                              : isCompleted
+                                ? "bg-emerald-500/10 text-emerald-400"
+                                : "bg-slate-950 text-slate-600"
+                          }`}>
+                            {nIdx === 0 && <Activity className="w-4 h-4" />}
+                            {nIdx === 1 && <Database className="w-4 h-4" />}
+                            {nIdx === 2 && <Cpu className="w-4 h-4" />}
+                            {nIdx === 3 && <GitBranch className="w-4 h-4" />}
+                          </span>
+
+                          <span className="font-bold text-[10px] uppercase block tracking-wider leading-none mb-1 text-white">
+                            {node?.label}
+                          </span>
+                          <span className="text-[9px] text-slate-500 block leading-tight">
+                            {node?.desc}
+                          </span>
+                        </div>
+
+                        {nIdx < 3 && (
+                          <div className={`hidden md:block transition-all duration-300 ${
+                            isActive
+                              ? "text-cyan-400 scale-125 animate-pulse"
+                              : isCompleted
+                                ? "text-emerald-500"
+                                : "text-slate-800"
+                          }`}>
+                            <ChevronRight className="w-5 h-5" />
+                          </div>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-900">
+                  <div className="text-slate-400 text-xs max-w-md">
+                    <span className="text-cyan-400 font-bold">Concept: </span>
+                    {RECIPES_DATA[selectedRecipe].description}
+                  </div>
+
+                  <button
+                    onClick={handleRunPipeline}
+                    disabled={pipelineRunning}
+                    className={`px-5 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-2 cursor-pointer border ${
+                      pipelineRunning
+                        ? "bg-cyan-500/5 text-cyan-300/60 border-cyan-500/10 animate-pulse cursor-not-allowed"
+                        : "bg-cyan-500/15 text-cyan-400 border-cyan-500/20 hover:bg-cyan-500 hover:text-slate-950 hover:border-cyan-400"
+                    }`}
+                  >
+                    {pipelineRunning ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        In esecuzione...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5" />
+                        Esegui Pipeline
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Interactive Debug System Logs Dashboard output */}
+              <div className="space-y-2 relative z-10">
+                <span className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-widest block">Pipeline Diagnostics Logs</span>
+                <div className="bg-slate-950 border border-slate-900 rounded-xl p-4 h-40 overflow-y-auto font-mono text-[11px] leading-relaxed text-zinc-300 space-y-1.5 scrollbar-thin scrollbar-thumb-zinc-800">
+                  {pipelineLogs.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-slate-600 italic">
+                      Nessun log caricato. Clicca su "Esegui Pipeline" per avviare il simulatore di processi.
+                    </div>
+                  ) : (
+                    pipelineLogs.map((log, idx) => (
+                      <div key={idx} className="animate-fade-in flex items-start gap-1">
+                        <span className="text-cyan-500 shrink-0 select-none">❯</span>
+                        <span className={log.includes("✔") ? "text-emerald-400 font-semibold" : log.includes("▶") ? "text-slate-300" : "text-cyan-400/80"}>
+                          {log}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Interactive Debug System Logs Dashboard output */}
-          <div className="space-y-2 relative z-10">
-            <span className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-widest block">Pipeline Diagnostics Logs</span>
-            <div className="bg-slate-950 border border-slate-900 rounded-xl p-4 h-40 overflow-y-auto font-mono text-[11px] leading-relaxed text-zinc-350 space-y-1.5 scrollbar-thin scrollbar-thumb-zinc-800">
-              {pipelineLogs.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-slate-600 italic">
-                  Nessun log caricato. Clicca su "Esegui Pipeline" per avviare il simulatore di processi.
+          {/* 03 — Console interattiva */}
+          <div className="max-w-4xl mx-auto space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded">03</span>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Console interattiva</h3>
+            </div>
+            <p className="text-slate-400 text-sm">
+              Se preferisci la riga di comando, digita <span className="font-mono text-cyan-400">help</span> per esplorare competenze, progetti ed esperienza.
+            </p>
+            <div className={`border rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${currentTerminalClass.bg}`}>
+
+              {/* OS Styled Window Header */}
+              <div className={`px-4 py-3 border-b flex justify-between items-center ${currentTerminalClass.headerBg}`}>
+                <div className="flex gap-2">
+                  <span className={`w-3 h-3 rounded-full ${currentTerminalClass.dots}`} />
+                  <span className={`w-3 h-3 rounded-full ${currentTerminalClass.dots}`} />
+                  <span className={`w-3 h-3 rounded-full ${currentTerminalClass.dots}`} />
                 </div>
-              ) : (
-                pipelineLogs.map((log, idx) => (
-                  <div key={idx} className="animate-fade-in flex items-start gap-1">
-                    <span className="text-cyan-500 shrink-0 select-none">❯</span>
-                    <span className={log.includes("✔") ? "text-emerald-400 font-semibold" : log.includes("▶") ? "text-slate-300" : "text-cyan-400/80"}>
-                      {log}
-                    </span>
+                <span className="text-xs font-mono font-bold flex items-center gap-1">
+                  <Command className="w-3 h-3 text-cyan-400 animate-pulse" /> alexandro@unisalento-icsone-node:~
+                </span>
+                <div className="flex gap-2">
+                  <button onClick={() => setTerminalTheme("dark")} className={`px-1.5 py-0.5 text-[9px] rounded border font-mono ${terminalTheme === "dark" ? "bg-zinc-800 text-white border-zinc-700" : "text-zinc-500 border-transparent"}`}>dark</button>
+                  <button onClick={() => setTerminalTheme("matrix")} className={`px-1.5 py-0.5 text-[9px] rounded border font-mono ${terminalTheme === "matrix" ? "bg-green-950 text-green-300 border-green-800" : "text-green-600 border-transparent"}`}>matrix</button>
+                  <button onClick={() => setTerminalTheme("nord")} className={`px-1.5 py-0.5 text-[9px] rounded border font-mono ${terminalTheme === "nord" ? "bg-slate-800 text-sky-200 border-slate-700" : "text-slate-500 border-transparent"}`}>nord</button>
+                </div>
+              </div>
+
+              {/* Terminal Body */}
+              <div className={`p-5 h-80 overflow-y-auto leading-relaxed select-text space-y-4 ${currentTerminalClass.text}`}>
+                {terminalHistory.map((item, index) => (
+                  <div key={index} className="space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className={currentTerminalClass.prompt}>{item.dir} $</span>
+                      <span className="text-white font-medium">{item.input}</span>
+                      <span className="text-[10px] text-zinc-600 ml-auto font-mono">{item.timestamp}</span>
+                    </div>
+                    <pre className="whitespace-pre-wrap font-mono text-xs text-slate-300 pl-4 border-l border-indigo-950/50 py-0.5">
+                      {item.output}
+                    </pre>
                   </div>
-                ))
-              )}
+                ))}
+                <div ref={terminalBottomRef} />
+              </div>
+
+              {/* Terminal Input Form */}
+              <form onSubmit={handleTerminalSubmit} className="p-3 border-t border-slate-900 bg-black/40 flex items-center gap-2">
+                <span className={`pl-2 font-mono ${currentTerminalClass.prompt}`}>~ $</span>
+                <input
+                  type="text"
+                  value={terminalInput}
+                  onChange={(e) => setTerminalInput(e.target.value)}
+                  placeholder="Digita 'help' o esplora i comandi come 'skills', 'about', 'mcp'..."
+                  className={`flex-1 ${currentTerminalClass.inputBg} focus:ring-0 focus:outline-none`}
+                  autoFocus={false}
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-500/20 text-xs font-mono font-bold transition-all cursor-pointer"
+                >
+                  Invia
+                </button>
+              </form>
             </div>
           </div>
         </section>
@@ -1374,8 +1171,8 @@ export default function App() {
         <section id="contact-section" className="py-16 border-t border-slate-900/60 max-w-4xl mx-auto space-y-10">
           <div className="text-center space-y-2 max-w-xl mx-auto">
             <span className="text-xs text-cyan-400 font-mono tracking-widest uppercase">Contatti</span>
-            <h2 className="text-3xl font-extrabold tracking-tight text-white m-0 font-sans">Iniziamo Qualcosa di Straordinario</h2>
-            <p className="text-slate-400 text-sm">Discutiamo di nuove opportunità di sviluppo, progetti di intelligenza artificiale o integrazioni DevOps.</p>
+            <h2 className="text-3xl font-extrabold tracking-tight text-white m-0 font-sans">Parliamone</h2>
+            <p className="text-slate-400 text-sm">Aperto a opportunità da Software Engineer, consulenze AI/DevOps e collaborazioni tecniche. Ti rispondo entro 24–48 ore.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
@@ -1386,13 +1183,13 @@ export default function App() {
               
               <div className="space-y-4">
                 <a 
-                  href="mailto:alexandro4317@gmail.com" 
+                  href={`mailto:${CONTACT.email}`} 
                   className="flex items-center gap-3.5 p-4 bg-slate-900/40 border border-slate-800 hover:border-slate-700 hover:shadow-lg hover:shadow-cyan-400/5 transition-all rounded-2xl group cursor-pointer"
                 >
                   <Mail className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
                   <div>
                     <p className="text-[10px] text-slate-500 font-mono leading-none uppercase">Scrivimi via E-mail</p>
-                    <p className="text-sm text-slate-200 mt-1.5 font-bold select-all">alexandro4317@gmail.com</p>
+                    <p className="text-sm text-slate-200 mt-1.5 font-bold select-all">{CONTACT.email}</p>
                   </div>
                 </a>
 
@@ -1402,7 +1199,7 @@ export default function App() {
                   <Phone className="w-5 h-5 text-cyan-400" />
                   <div>
                     <p className="text-[10px] text-slate-500 font-mono leading-none uppercase">Zona e Disponibilità</p>
-                    <p className="text-sm text-slate-200 mt-1.5 font-bold">Salento, Puglia / Remoto</p>
+                    <p className="text-sm text-slate-200 mt-1.5 font-bold">{CONTACT.location}</p>
                   </div>
                 </div>
               </div>
@@ -1410,18 +1207,20 @@ export default function App() {
               {/* Social networking buttons row */}
               <div className="flex gap-3">
                 <a 
-                  href="https://github.com/alexandro4317" 
+                  href={CONTACT.github} 
                   target="_blank" 
                   rel="noreferrer" 
-                  className="w-11 h-11 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:text-cyan-400 flex items-center justify-center text-slate-350 hover:text-white transition-colors cursor-pointer"
+                  aria-label="Profilo GitHub"
+                  className="w-11 h-11 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:text-cyan-400 flex items-center justify-center text-slate-300 hover:text-white transition-colors cursor-pointer"
                 >
                   <Github className="w-5 h-5" />
                 </a>
                 <a 
-                  href="https://linkedin.com" 
+                  href={CONTACT.linkedin} 
                   target="_blank" 
                   rel="noreferrer" 
-                  className="w-11 h-11 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:text-cyan-400 flex items-center justify-center text-slate-355 hover:text-white transition-colors cursor-pointer"
+                  aria-label="Profilo LinkedIn"
+                  className="w-11 h-11 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:text-cyan-400 flex items-center justify-center text-slate-300 hover:text-white transition-colors cursor-pointer"
                 >
                   <Linkedin className="w-5 h-5" />
                 </a>
@@ -1436,12 +1235,18 @@ export default function App() {
                     <CheckCircle2 className="w-6 h-6" />
                   </span>
                   <div className="space-y-1">
-                    <h4 className="font-bold text-white text-lg tracking-tight">Messaggio Trasmesso!</h4>
-                    <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">Ti ringrazio molto per avermi scritto. Alexandro ti ricontatterà quanto prima alla mail indicata.</p>
+                    <h4 className="font-bold text-white text-lg tracking-tight">Ci siamo quasi!</h4>
+                    <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                      Si è aperto il tuo client di posta con il messaggio già compilato: invialo per completare il contatto.
+                      Se non si è aperto nulla, scrivimi direttamente a{" "}
+                      <a href={`mailto:${CONTACT.email}`} className="text-cyan-400 hover:text-cyan-300 font-semibold">
+                        {CONTACT.email}
+                      </a>.
+                    </p>
                   </div>
                   <button 
                     onClick={() => setFormSubmitted(false)}
-                    className="text-xs text-cyan-400 font-bold hover:text-cyan-350 mt-4 cursor-pointer"
+                    className="text-xs text-cyan-400 font-bold hover:text-cyan-400 mt-4 cursor-pointer"
                   >
                     Invia un altro messaggio
                   </button>
@@ -1457,7 +1262,7 @@ export default function App() {
                         value={formState.name}
                         onChange={(e) => setFormState({ ...formState, name: e.target.value })}
                         placeholder="John Doe"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-650 focus:outline-none focus:border-cyan-500/80 transition-colors"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500/80 transition-colors"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1468,7 +1273,7 @@ export default function App() {
                         value={formState.email}
                         onChange={(e) => setFormState({ ...formState, email: e.target.value })}
                         placeholder="you@example.com"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-650 focus:outline-none focus:border-cyan-500/80 transition-colors"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500/80 transition-colors"
                       />
                     </div>
                   </div>
@@ -1481,7 +1286,7 @@ export default function App() {
                       value={formState.message}
                       onChange={(e) => setFormState({ ...formState, message: e.target.value })}
                       placeholder="Ciao Alexandro, ti scrivo in merito ad una proposta tecnica..."
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-650 focus:outline-none focus:border-cyan-500/80 transition-colors resize-none"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500/80 transition-colors resize-none"
                     />
                   </div>
 
@@ -1515,17 +1320,22 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={() => setSelectedProject(null)}
             className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="project-modal-title"
+              onClick={(e) => e.stopPropagation()}
+              className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl relative"
             >
               
               {/* Modal Banner decorative accent */}
-              <div className="h-1.5 w-full bg-gradient-to-r from-cyan-400 to-blue-500" />
+              <div className="h-1.5 w-full shrink-0 bg-gradient-to-r from-cyan-400 to-blue-500" />
               
               {/* Close button icon indicator */}
               <button 
@@ -1535,14 +1345,14 @@ export default function App() {
                 <X className="w-4 h-4" />
               </button>
 
-              <div className="p-6 sm:p-8 space-y-6">
+              <div className="p-6 sm:p-8 space-y-6 overflow-y-auto">
                 <div>
                   <span className="text-[10px] text-cyan-400 font-mono tracking-widest block uppercase font-bold">Dettaglio Tecnico Completo</span>
-                  <h3 className="text-2xl font-bold text-white tracking-tight mt-1">{selectedProject.title}</h3>
+                  <h3 id="project-modal-title" className="text-2xl font-bold text-white tracking-tight mt-1">{selectedProject.title}</h3>
                 </div>
 
                 <div className="space-y-4">
-                  <p className="text-slate-350 text-xs sm:text-sm leading-relaxed">
+                  <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
                     {selectedProject.fullDescription}
                   </p>
                   
@@ -1563,7 +1373,7 @@ export default function App() {
                 {/* Grid metrics details row */}
                 {selectedProject.metrics && selectedProject.metrics.length > 0 && (
                   <div
-                    className="grid gap-4 bg-slate-950 p-4 rounded-xl border border-slate-850"
+                    className="grid gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800"
                     style={{ gridTemplateColumns: `repeat(${selectedProject.metrics.length}, minmax(0, 1fr))` }}
                   >
                     {selectedProject.metrics.map((m, idx) => (
@@ -1578,14 +1388,29 @@ export default function App() {
                 {/* Lower tag cloud row */}
                 <div className="flex flex-wrap gap-2 pt-2">
                   {selectedProject.tags.map((tag) => (
-                    <span key={tag} className="text-[10px] bg-slate-800 text-slate-305 px-3 py-1 rounded-md font-mono text-cyan-400 font-semibold bg-cyan-500/10 border border-cyan-500/10">
+                    <span key={tag} className="text-[10px] bg-slate-800 text-slate-300 px-3 py-1 rounded-md font-mono text-cyan-400 font-semibold bg-cyan-500/10 border border-cyan-500/10">
                       {tag}
                     </span>
                   ))}
                 </div>
 
                 {/* Footer action buttons */}
-                <div className="pt-4 border-t border-slate-800 flex justify-end">
+                <div className="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                  {selectedProject.links && selectedProject.links.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProject.links.map((link) => (
+                        <a
+                          key={link.url}
+                          href={link.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-3 py-2 rounded-lg transition-colors"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" /> {link.label}
+                        </a>
+                      ))}
+                    </div>
+                  ) : <span />}
                   <button 
                     onClick={() => setSelectedProject(null)}
                     className="bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white px-5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all border border-slate-800"
@@ -1601,10 +1426,16 @@ export default function App() {
 
       {/* Elegant Footer signature layout block */}
       <footer className="border-t border-slate-900 bg-slate-950 py-10 px-6 text-center text-slate-500 text-[11px] font-mono leading-relaxed space-y-2 font-medium">
-        <p>&copy; {new Date().getFullYear()} Alexandro Tornese. Tutti i diritti riservati.</p>
+        <p>&copy; {new Date().getFullYear()} {CONTACT.name}. Tutti i diritti riservati.</p>
+        <div className="flex items-center justify-center gap-4 text-slate-400">
+          <a href={`mailto:${CONTACT.email}`} className="hover:text-cyan-400 transition-colors">E-mail</a>
+          <a href={CONTACT.github} target="_blank" rel="noreferrer" className="hover:text-cyan-400 transition-colors">GitHub</a>
+          <a href={CONTACT.linkedin} target="_blank" rel="noreferrer" className="hover:text-cyan-400 transition-colors">LinkedIn</a>
+          <a href={CONTACT.cvUrl} download className="hover:text-cyan-400 transition-colors">CV</a>
+        </div>
         <div className="flex items-center justify-center gap-2 text-slate-600 mt-1">
           <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping"></span>
-          <span>Disponible per nuove collaborazioni</span>
+          <span>Disponibile per nuove collaborazioni</span>
         </div>
       </footer>
 
